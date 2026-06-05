@@ -4,6 +4,11 @@
 chcp 850 >nul
 mode con: cols=70 lines=7
 
+@REM Office Manager - Script de gerenciamento do Microsoft 365 Apps
+@REM Esse script ‚ fornecido "no estado em que se encontra", sem garantias de qualquer tipo. Use por sua conta e risco.
+@REM Desenvolvido por wevertonmbrtx (Code_4X)
+@REM https://github.com/wevertonmbrtx/officemanager/blob/main/omanager.cmd
+
 cls
 
 :init
