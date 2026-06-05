@@ -1,0 +1,10 @@
+<Configuration>
+  <Add OfficeClientEdition="32" Channel="SemiAnnual">
+    <Product ID="O365ProPlusRetail">
+      <Language ID="en-US" />
+    </Product>
+  </Add>
+  <Updates Enabled="TRUE" />
+  <RemoveMSI />
+  <Display Level="Full" AcceptEULA="TRUE" />
+</Configuration>

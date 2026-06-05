@@ -306,11 +306,11 @@ cls
     set "OPPk=SOFTWARE\Microsoft\OfficeSoftwareProtectionPlatform"
     set "SPPk=SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
     set "_para=ALL /OSE /NOCANCEL /FORCE /ENDCURRENTINSTALLS /DELETEUSERSETTINGS /CLEARADDINREG /REMOVELYNC"
-    if /i "%PROCESSOR_ARCHITECTURE%"=="amd64" set "xBit=x64"&set "xOS=x64"
-    if /i "%PROCESSOR_ARCHITECTURE%"=="arm64" set "xBit=x86"&set "xOS=A64"
-    if /i "%PROCESSOR_ARCHITECTURE%"=="x86" if "%PROCESSOR_ARCHITEW6432%"=="" set "xBit=x86"&set "xOS=x86"
-    if /i "%PROCESSOR_ARCHITEW6432%"=="amd64" set "xBit=x64"&set "xOS=x64"
-    if /i "%PROCESSOR_ARCHITEW6432%"=="arm64" set "xBit=x86"&set "xOS=A64"
+    if /i "%PROCESSOR_ARCHITECTURE%"=="amd64" set "xBit=x64" & set "xOS=x64"
+    if /i "%PROCESSOR_ARCHITECTURE%"=="arm64" set "xBit=x86" & set "xOS=A64"
+    if /i "%PROCESSOR_ARCHITECTURE%"=="x86" if "%PROCESSOR_ARCHITEW6432%"=="" set "xBit=x86" & set "xOS=x86"
+    if /i "%PROCESSOR_ARCHITEW6432%"=="amd64" set "xBit=x64" & set "xOS=x64"
+    if /i "%PROCESSOR_ARCHITEW6432%"=="arm64" set "xBit=x86" & set "xOS=A64"
     set "_Common=%CommonProgramFiles%"
     if defined PROCESSOR_ARCHITEW6432 set "_Common=%CommonProgramW6432%"
     
@@ -374,11 +374,11 @@ cls
     call :L %cC% "   [D]" %c7% " Desinstalar, " 
     call :L %cB% "   [A]" %c7% " Ativar, " 
     call :L %cE% "   [C]" %c7% " Continuar"
-    CHOICE /C DAC /N 
+    choice /C DAC /N 
     
-    if ERRORLEVEL 3 goto :setUpConfiguration
-    if ERRORLEVEL 2 goto :activate
-    if ERRORLEVEL 1 goto :uninstallOffice
+    if %errorlevel%==3 goto :setUpConfiguration
+    if %errorlevel%==2 goto :activate
+    if %errorlevel%==1 goto :uninstallOffice
 
 
 :setUpConfiguration
@@ -394,72 +394,95 @@ cls
     )
 
     cls & echo.
-    echo [1] Qual a arquitetura do Office?
-    echo     1 - 64-bits (Recomendado)
-    echo     2 - 32-bits
+    call :L %cA% "   [1]" %c7% " Selecione a arquitetura do Office a ser instalada:"
+    if %xBit%==x64 (
+        call :L %c7% "      1 - 64-bits" %cA% " Recomendado"
+        echo       2 - 32-bits 
+    ) else (
+        echo       1 - 64-bits
+        call :L %c7% "      2 - 32-bits" %cA% " Recomendado"
+    )
     choice /c 12 /n /m "> "
     if %errorlevel%==1 set "ARCH=64"
     if %errorlevel%==2 set "ARCH=32"
 
     cls & echo.
-    echo [2] Qual o canal de atualiza‡Æo?
-    echo     1 - Current (Mensal)
-    echo     2 - MonthlyEnterprise (Mensal Empresarial)
-    echo     3 - SemiAnnual (Semestral)
+    call :L %cA% "   [2]" %c7% " Selecione o canal de atualiza‡Æo:"
+    echo       1 - Current (Mensal)
+    echo       2 - MonthlyEnterprise (Mensal Empresarial)
+    echo       3 - SemiAnnual (Semestral)
     choice /c 123 /n /m "> "
     if %errorlevel%==1 set "CHANNEL=Current"
     if %errorlevel%==2 set "CHANNEL=MonthlyEnterprise"
     if %errorlevel%==3 set "CHANNEL=SemiAnnual"
 
     cls & echo.
-    echo [3] Qual o produto?
-    echo     1 - Microsoft 365 (Sem Teams)
-    echo     2 - Microsoft 365 (Com Teams)
+    call :L %cA% "    [3]" %c7% " Selecione o produto:"
+    echo       1 - Microsoft 365 (Sem Teams)
+    echo       2 - Microsoft 365 (Com Teams)
     choice /c 12 /n /m "> "
     if %errorlevel%==1 set "PRODUCT=O365ProPlusEEANoTeamsRetail"
     if %errorlevel%==2 set "PRODUCT=O365ProPlusRetail"
 
     cls & echo.
-    set /p "LANG= [4] Digite o idioma (Enter para pt-br): "
-    if "%LANG%"=="" set "LANG=pt-br"
+    call :L %cA% "   [4]" %c7% " Selecione o idioma:"
+    echo       1 - Portuguˆs (Brasil) [pt-BR]
+    echo       2 - Inglˆs (EUA) [en-US]
+    echo       3 - Personalizado (ex.: en-GB, es-ES, etc.)
+    choice /c 123 /n /m "> "
+    if %errorlevel%==1 set "LANG=pt-BR"
+    if %errorlevel%==2 set "LANG=en-US"
+    if %errorlevel%==3 (
+        cls & echo.
+        set /p "LANG=   Digite o idioma personalizado: "
+    )
 
     call :setupAsk & set "EXC_ACCS=1" & choice /c EM /n /m "> Access: "
-    if errorlevel 2 set "EXC_ACCS=0"
+    if %errorlevel%==2 set "EXC_ACCS=0"
+
+    @REM call :setupAsk & set "EXC_EXCL=1" & choice /c EM /n /m "> Excel: "
+    @REM if %errorlevel%==2 set "EXC_EXCL=0"
 
     call :setupAsk & set "EXC_ONED=1" & choice /c EM /n /m "> OneDrive: "
-    if errorlevel 2 set "EXC_ONED=0"
+    if %errorlevel%==2 set "EXC_ONED=0"
 
     call :setupAsk & set "EXC_OUTL=1" & choice /c EM /n /m "> Outlook: "
-    if errorlevel 2 set "EXC_OUTL=0"
+    if %errorlevel%==2 set "EXC_OUTL=0"
 
     call :setupAsk & set "EXC_NOUT=1" & choice /c EM /n /m "> Novo Outlook: "
-    if errorlevel 2 set "EXC_NOUT=0"
+    if %errorlevel%==2 set "EXC_NOUT=0"
+
+    @REM call :setupAsk & set "EXC_PUBL=1" & choice /c EM /n /m "> PowerPoint: "
+    @REM if %errorlevel%==2 set "EXC_POWP=0"
 
     call :setupAsk & set "EXC_PUBL=1" & choice /c EM /n /m "> Publisher: "
-    if errorlevel 2 set "EXC_PUBL=0"
+    if %errorlevel%==2 set "EXC_PUBL=0"
 
     call :setupAsk & set "EXC_NOTE=1" & choice /c EM /n /m "> OneNote: "
-    if errorlevel 2 set "EXC_NOTE=0"
+    if %errorlevel%==2 set "EXC_NOTE=0"
 
     call :setupAsk & set "EXC_SKYP=1" & choice /c EM /n /m "> Skype for Business: "
-    if errorlevel 2 set "EXC_SKYP=0"
+    if %errorlevel%==2 set "EXC_SKYP=0"
+
+    @REM call :setupAsk & set "EXC_WORD=1" & choice /c EM /n /m "> Word: "
+    @REM if %errorlevel%==2 set "EXC_WORD=0"
 
     call :setupAsk & set "EXC_GROO=1" & choice /c EM /n /m "> OneDrive for Business: "
-    if errorlevel 2 set "EXC_GROO=0"
+    if %errorlevel%==2 set "EXC_GROO=0"
 
     call :setupAsk & set "EXC_BING=1" & choice /c EM /n /m "> Bing (Pesquisa no Bing): "
-    if errorlevel 2 set "EXC_BING=0"
+    if %errorlevel%==2 set "EXC_BING=0"
 
     call :setupAsk & set "EXC_TEAM=0"
     if not "%PRODUCT%"=="O365ProPlusRetail" goto :genSetUpXML
     set "EXC_TEAM=1"
     choice /c EM /n /m "> Teams: "
-    if errorlevel 2 set "EXC_TEAM=0"
+    if %errorlevel%==2 set "EXC_TEAM=0"
     
     :genSetUpXML
         cls & echo.
-        call :L %c7% "                   Gerando arquivo de configura‡Æo..." 
         echo.
+        call :L %c7% "                   Gerando arquivo de configura‡Æo..." 
 
         (
             echo ^<Configuration^>
@@ -468,13 +491,15 @@ cls
             echo       ^<Language ID="%LANG%" /^>
             
             if "%EXC_ACCS%"=="1" echo       ^<ExcludeApp ID="Access" /^>
+            @REM if "%EXC_EXCL%"=="1" echo       ^<ExcludeApp ID="Excel" /^>
             if "%EXC_ONED%"=="1" echo       ^<ExcludeApp ID="OneDrive" /^>
             if "%EXC_OUTL%"=="1" echo       ^<ExcludeApp ID="Outlook" /^>
             if "%EXC_NOUT%"=="1" echo       ^<ExcludeApp ID="OutlookForWindows" /^>
-            if "%EXC_PUBL%"=="1" echo       ^<ExcludeApp ID="Publisher" /^>
+            @REM if "%EXC_PUBL%"=="1" echo       ^<ExcludeApp ID="Publisher" /^>
             if "%EXC_NOTE%"=="1" echo       ^<ExcludeApp ID="OneNote" /^>
             if "%EXC_SKYP%"=="1" echo       ^<ExcludeApp ID="Lync" /^>
             if "%EXC_GROO%"=="1" echo       ^<ExcludeApp ID="Groove" /^>
+            @REM if "%EXC_WORD%"=="1" echo       ^<ExcludeApp ID="Word" /^>
             if "%EXC_BING%"=="1" echo       ^<ExcludeApp ID="Bing" /^>
             if "%EXC_TEAM%"=="1" echo       ^<ExcludeApp ID="Teams" /^>
             
@@ -486,8 +511,7 @@ cls
             echo ^</Configuration^>
         ) > Configuration.xml
 
-        echo.
-        echo.
+        cls & echo.
         echo.
         call :L %c7% "                   Arquivo de configura‡Æo criado."
         timeout /t 2 /nobreak > NUL
@@ -499,8 +523,9 @@ cls
 :setupAsk
     cls
     echo.
-    echo [5] Quais aplicativos deseja EXCLUIR?
-    call :L %c7% "     " "41;33m" "[E]" %c7% " = Excluir  |  " "42;96m" "[M]" %c7% " = Manter"
+    call :L %c7% "   " %cA% "[5]" %c7% " Selecione apps para" %c4% " EXCLUIR" %c7% ":"
+    call :L %c7% "      " "41;33m" "[E]" %c7% " - Excluir"
+    call :L %c7% "      " "42;96m" "[M]" %c7% " - Manter"
     echo.
     goto :eof
 
@@ -518,23 +543,21 @@ cls
     
     cls
     dir setup.exe > NUL 2>NUL
-    IF %ERRORLEVEL%==0 (
+    if %ERRORLEVEL%==0 (
         echo.
         echo.
         echo.
         call :L %c7% "               Instalador local" %c2% " encontrado." %c6% " Atualizando..."
         echo.
         echo.
-        DEL /F /Q setup.exe > NUL
-        GOTO :downloadSetup
-    ) ELSE (
+        del /F /Q setup.exe > NUL
+        goto :downloadSetup
+    ) else (
         echo.
         echo.
         echo.
         call :L %c7% "                   Baixando o instalador do Office..."
-        echo.
-        echo.
-        GOTO :downloadSetup
+        goto :downloadSetup
     )
 
 :downloadSetup
@@ -546,7 +569,7 @@ cls
     call :L %c8% "                Conectando ao servidor da MICROSOFT..."
     echo.
     echo. & timeout /t 2 > NUL
-    PING officecdn.microsoft.com | FIND "TTL=" > NUL
+    ping officecdn.microsoft.com | find "TTL=" > NUL
     IF %ERRORLEVEL%==0 (  
         CLS
         echo.
