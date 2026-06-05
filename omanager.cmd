@@ -22,14 +22,14 @@ cls
         if /i "%%~#"=="-wow"   set _rel1=1
         if /i "%%~#"=="-arm"   set _rel2=1
         if /i "%%~#"=="-qedit" set qerel=1
-        if /i "%%~#"=="/A"     set _uAll=1&set Unattend=1
-        if /i "%%~#"=="/C"     set _uC2R=1&set Unattend=1
-        if /i "%%~#"=="/P"     set _uUWP=1&set Unattend=1
-        if /i "%%~#"=="/M6"    set _uM16=1&set Unattend=1
-        if /i "%%~#"=="/M5"    set _uM15=1&set Unattend=1
-        if /i "%%~#"=="/M4"    set _uM14=1&set Unattend=1
-        if /i "%%~#"=="/M2"    set _uM12=1&set Unattend=1
-        if /i "%%~#"=="/M1"    set _uM11=1&set Unattend=1
+        if /i "%%~#"=="/A"     set _uAll=1 & set Unattend=1
+        if /i "%%~#"=="/C"     set _uC2R=1 & set Unattend=1
+        if /i "%%~#"=="/P"     set _uUWP=1 & set Unattend=1
+        if /i "%%~#"=="/M6"    set _uM16=1 & set Unattend=1
+        if /i "%%~#"=="/M5"    set _uM15=1 & set Unattend=1
+        if /i "%%~#"=="/M4"    set _uM14=1 & set Unattend=1
+        if /i "%%~#"=="/M2"    set _uM12=1 & set Unattend=1
+        if /i "%%~#"=="/M1"    set _uM11=1 & set Unattend=1
     )
 
     goto :noProgArgs
@@ -51,12 +51,14 @@ cls
 
     if "%_leg%"=="1" (
         call :L %c6% "   Windows legado: seguindo sem alteracoes."
-        timeout /t 1 /nobreak >nul
+        timeout /t 2 /nobreak >nul
+        cls
         goto :eof
     )
     if defined _psver (
         call :L %cA% "   Tudo certo para prosseguir."
-        timeout /t 1 /nobreak >nul
+        timeout /t 2 /nobreak >nul
+        cls
         goto :eof
     )
 
@@ -367,10 +369,11 @@ cls
     title Instala‡Æo existente detectada 
 
     cls & echo.
-    call :L %cA% " Uma instala‡Æo existente do Office foi detectada."
+    call :L %cA% "   Uma instala‡Æo existente do Office foi detectada."
     echo.
-    echo.
-    call :L %cC% " [D]" %c7% "esinstalar, " %cB% "[A]" %c7% "tivar, ou " %cE% "[C]" %c7% "ontinuar:"
+    call :L %cC% "   [D]" %c7% " Desinstalar, " 
+    call :L %cB% "   [A]" %c7% " Ativar, " 
+    call :L %cE% "   [C]" %c7% " Continuar"
     CHOICE /C DAC /N 
     
     if ERRORLEVEL 3 goto :setUpConfiguration
@@ -680,16 +683,16 @@ cls
     set tOM11=0&set "dOM11="
     set tOUWP=0&set "dOUWP="
     set "dONXT="
-    if %_O15CTR% equ 1 set tOCTR=1 & set "dOCTR={*} / 2013"
-    if %_O16CTR% equ 1 set tOCTR=1 & set "dOCTR={*}"
-    if %_O16MSI% equ 1 set tOM16=1 & set "dOM16={*}"
-    if %_O15MSI% equ 1 set tOM15=1 & set "dOM15={*}"
-    if %_O14CTR% equ 1 set tOM14=1 & set "dOM14={*} / C2R"
-    if %_O14MSI% equ 1 set tOM14=1 & set "dOM14={*}"
-    if %_O12MSI% equ 1 set tOM12=1 & set "dOM12={*}"
-    if %_O11MSI% equ 1 set tOM11=1 & set "dOM11={*}"
-    if %_O16UWP% equ 1 set tOUWP=1 & set "dOUWP={*}"
-    if %_O16NXT% equ 1 set "dONXT={*}"
+    if %_O15CTR% equ 1 set tOCTR=1 & set "dOCTR=< 2013"
+    if %_O16CTR% equ 1 set tOCTR=1 & set "dOCTR=<"
+    if %_O16MSI% equ 1 set tOM16=1 & set "dOM16=<"
+    if %_O15MSI% equ 1 set tOM15=1 & set "dOM15=<"
+    if %_O14CTR% equ 1 set tOM14=1 & set "dOM14=< C2R"
+    if %_O14MSI% equ 1 set tOM14=1 & set "dOM14=<"
+    if %_O12MSI% equ 1 set tOM12=1 & set "dOM12=<"
+    if %_O11MSI% equ 1 set tOM11=1 & set "dOM11=<"
+    if %_O16UWP% equ 1 set tOUWP=1 & set "dOUWP=<"
+    if %_O16NXT% equ 1 set "dONXT=<"
 
     if %_uAll% equ 1 (
         if %winbuild% GEQ 7600 set tOCTR=1
@@ -716,37 +719,39 @@ cls
         set _er=0
         set _pt=
         call :Hdr
-        echo.
+        cls & echo.
         call :L %c7% "                    "     %cC% "[1]" %c7% " Limpar TODOS"
         if %winbuild% GEQ 7600 (
-            call :L %c7% "                    " %cC% "[2]" %c7% " Limpar Office C2R  %dOCTR%"
-            call :L %c7% "                    " %cC% "[3]" %c7% " Limpar Office 2016 %dOM16%"
-            call :L %c7% "                    " %cC% "[4]" %c7% " Limpar Office 2013 %dOM15%"
+            call :L %c7% "                    " %cC% "[2]" %c7% " Limpar Office C2R  " %cA% "%dOCTR%"
+            call :L %c7% "                    " %cC% "[3]" %c7% " Limpar Office 2016 " %cA% "%dOM16%"
+            call :L %c7% "                    " %cC% "[4]" %c7% " Limpar Office 2013 " %cA% "%dOM15%"
         )
-        call :L %c7% "                    "     %cC% "[5]" %c7% " Limpar Office 2010 %dOM14%"
-        call :L %c7% "                    "     %cC% "[6]" %c7% " Limpar Office 2007 %dOM12%"
-        call :L %c7% "                    "     %cC% "[7]" %c7% " Limpar Office 2003 %dOM11%"
-        if %winbuild% GEQ 10240 (
-            call :L %c7% "                    " %cC% "[8]" %c7% " Limpar Office UWP  %dOUWP%"
+        call :L %c7% "                    "     %cC% "[5]" %c7% " Limpar Office 2010 " %cA% "%dOM14%"
+        call :L %c7% "                    "     %cC% "[6]" %c7% " Limpar Office 2007 " %cA% "%dOM12%"
+        call :L %c7% "                    "     %cC% "[7]" %c7% " Limpar Office 2003 " %cA% "%dOM11%"
+        if %winbuild% GEQ 10240 ( 
+            call :L %c7% "                    " %cC% "[8]" %c7% " Limpar Office UWP  " %cA% "%dOUWP%"
         )
         if %winbuild% GEQ 7600 (
             call :L %c7% "                    " %cC% "[9]" %c7% " Voltar ao Menu Principal"
             echo.
             echo                    Office 2016 e posteriores
             echo.
-            call :L %c7% "                    " %cC% "[L]" %c7% " Limpar Licen‡as vNext %dONXT%"
+            call :L %c7% "                    " %cC% "[L]" %c7% " Limpar Licen‡as vNext " %cA% "%dONXT%"
             call :L %c7% "                    " %cC% "[A]" %c7% " Apagar todas as Licen‡as"
             call :L %c7% "                    " %cC% "[R]" %c7% " Resetar Licen‡as C2R"
             call :L %c7% "                    " %cC% "[D]" %c7% " Desinstalar todas as Chaves"
             call :L %c7% "                    " %cC% "[0]" %c7% " SAIR"    
         )
         echo.
-        echo   {*}: instala‡Æo detectada.
+        call :L %c7% "   [" %cA% "<" %c7% "] Instala‡Æo detectada."
         echo.
 
         if %_wxp% equ 0 (
             choice /c 123456789LARD0 /n /m "> "
             set _er=!ERRORLEVEL!
+            cls & echo.
+            echo    Aguarde...
         ) else (
             set /p _pt="Selecione uma op‡Æo e pressione Enter, ou 0 para sair: "
         )
@@ -1472,7 +1477,7 @@ cls
         echo  %msg% 
         echo. 
     )
-    echo  Realizando limpeza final... & timeout /t 1 >nul
+    echo    Realizando limpeza final... & timeout /t 1 >nul
 
     %_Nul3% call :CloseC2R 2>nul
     del /f /q "setup.exe" 2>nul
@@ -1480,7 +1485,7 @@ cls
 
     cls
     echo.
-    echo  Removendo arquivos temporarios... & timeout /t 1 >nul
+    echo    Removendo arquivos temporarios... & timeout /t 1 >nul
     
     del /s /f /q "%TEMP%\*" 2>nul
     del /s /f /q "C:\Windows\Temp\*" 2>nul
@@ -1517,5 +1522,5 @@ cls
 
 :endScript
     echo.
-    echo  Limpeza finalizada. Fechando janela. & timeout /t 2 > NUL
+    echo    Limpeza finalizada. Fechando janela. & timeout /t 2 > NUL
     EXIT

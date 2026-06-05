@@ -1,0 +1,10 @@
+{
+    "files.autoGuessEncoding": false,
+    "[bat]": {
+        "files.encoding": "cp850"
+    },
+    "[cmd]": {
+        "files.encoding": "cp850"
+    }
+
+}
