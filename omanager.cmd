@@ -48,10 +48,10 @@ cls
 
     cls
     echo.
-    if "%_hasNet%"=="1" call :L %c7%   "   .NET Framework 4.5+ : " %cA% "OK"
-    if "%_hasNet%"=="0" call :L %c7%   "   .NET Framework 4.5+ : " %cC% "AUSENTE"
-    if defined _psver call :L %c7%     "      PowerShell / WMF : " %cA% "OK (v%_psver%)"
-    if not defined _psver call :L %c7% "   PowerShell 3+ / WMF : " %cC% "AUSENTE"
+    if "%_hasNet%"=="1" call :L %c7%   "   .NET Framework 4.5+: " %cA% "OK"
+    if "%_hasNet%"=="0" call :L %c7%   "   .NET Framework 4.5+: " %cC% "AUSENTE"
+    if defined _psver call :L %c7%     "      PowerShell / WMF: " %cA% "OK (" %cE% "v%_psver%" %cA% ")"
+    if not defined _psver call :L %c7% "   PowerShell 3+ / WMF: " %cC% "AUSENTE"
     echo.
 
     if "%_leg%"=="1" (
