@@ -457,7 +457,7 @@ cls
     call :setupAsk & set "EXC_NOUT=1" & choice /c EM /n /m "> Novo Outlook: "
     if %errorlevel%==2 set "EXC_NOUT=0"
 
-    @REM call :setupAsk & set "EXC_PUBL=1" & choice /c EM /n /m "> PowerPoint: "
+    @REM call :setupAsk & set "EXC_POWP=1" & choice /c EM /n /m "> PowerPoint: "
     @REM if %errorlevel%==2 set "EXC_POWP=0"
 
     call :setupAsk & set "EXC_PUBL=1" & choice /c EM /n /m "> Publisher: "
@@ -500,7 +500,8 @@ cls
             if "%EXC_ONED%"=="1" echo       ^<ExcludeApp ID="OneDrive" /^>
             if "%EXC_OUTL%"=="1" echo       ^<ExcludeApp ID="Outlook" /^>
             if "%EXC_NOUT%"=="1" echo       ^<ExcludeApp ID="OutlookForWindows" /^>
-            @REM if "%EXC_PUBL%"=="1" echo       ^<ExcludeApp ID="Publisher" /^>
+            if "%EXC_PUBL%"=="1" echo       ^<ExcludeApp ID="Publisher" /^>
+            @REM if "%EXC_POWP%"=="1" echo       ^<ExcludeApp ID="PowerPoint" /^> 
             if "%EXC_NOTE%"=="1" echo       ^<ExcludeApp ID="OneNote" /^>
             if "%EXC_SKYP%"=="1" echo       ^<ExcludeApp ID="Lync" /^>
             if "%EXC_GROO%"=="1" echo       ^<ExcludeApp ID="Groove" /^>

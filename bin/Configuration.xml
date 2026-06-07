@@ -1,7 +1,16 @@
 <Configuration>
-  <Add OfficeClientEdition="32" Channel="SemiAnnual">
+  <Add OfficeClientEdition="64" Channel="Current">
     <Product ID="O365ProPlusRetail">
-      <Language ID="en-US" />
+      <Language ID="pt-BR" />
+      <ExcludeApp ID="Access" />
+      <ExcludeApp ID="OneDrive" />
+      <ExcludeApp ID="Outlook" />
+      <ExcludeApp ID="OutlookForWindows" />
+      <ExcludeApp ID="OneNote" />
+      <ExcludeApp ID="Lync" />
+      <ExcludeApp ID="Groove" />
+      <ExcludeApp ID="Bing" />
+      <ExcludeApp ID="Teams" />
     </Product>
   </Add>
   <Updates Enabled="TRUE" />
