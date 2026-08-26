@@ -154,14 +154,29 @@ cls
 
 :download
     del /f /q %2 >nul 2>&1
-    bitsadmin /transfer dl /download /priority foreground "%~1" "%~2" >nul 2>&1
-    
-    if exist %2 goto :eof
-    where curl >nul 2>&1 && curl -L -s -o "%~2" "%~1" >nul 2>&1
-    
-    if exist %2 goto :eof
+
+    @REM curl primeiro: existe no Windows 10 1803+, respeita timeout e redirecionamento.
+    where curl >nul 2>&1 && curl -L -f -s --connect-timeout 15 --retry 2 -o "%~2" "%~1" >nul 2>&1
+    call :dlCheck %2
+    if "%_dlok%"=="1" goto :eof
+
+    @REM PowerShell/.NET com TLS 1.2 foráado.
     %_psc% "[Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor 3072; (New-Object Net.WebClient).DownloadFile(%1,%2)" >nul 2>&1
-    
+    call :dlCheck %2
+    if "%_dlok%"=="1" goto :eof
+
+    @REM BITS por £ltimo: fallback para Windows 7/8, onde n∆o h† curl.
+    bitsadmin /transfer dl /download /priority foreground "%~1" "%~2" >nul 2>&1
+    call :dlCheck %2
+    goto :eof
+
+
+:dlCheck
+    @REM Descarta arquivo vazio para que "if exist" n∆o vire falso positivo.
+    set "_dlok=0"
+    if not exist %1 goto :eof
+    for %%S in (%1) do if %%~zS EQU 0 ( del /f /q %1 >nul 2>&1 & goto :eof )
+    set "_dlok=1"
     goto :eof
 
 
@@ -575,8 +590,9 @@ cls
     call :L %c8% "                Conectando ao servidor da MICROSOFT..."
     echo.
     echo. & timeout /t 2 > NUL
-    ping officecdn.microsoft.com | find "TTL=" > NUL
-    IF %ERRORLEVEL%==0 (  
+
+    call :netCheck
+    if "%_net%"=="1" (
         CLS
         echo.
         echo.
@@ -584,20 +600,31 @@ cls
         call :L %c2% "                                Conectado."
         echo.
         echo. & timeout /t 1 > NUL
-        call :download "https://officecdn.microsoft.com/pr/wsus/setup.exe" "%~dp0bin\setup.exe"
-        if not exist "%~dp0bin\setup.exe" goto :downloadFail
-        for %%S in ("%~dp0bin\setup.exe") do if %%~zS LSS 1000000 goto :downloadFail
-        CLS
-        echo.
-        echo.
-        echo.
-        call :L %cA% "                    Download finalizado com sucesso." 
-        echo.
-        echo. & timeout /t 1 > NUL
-        GOTO :Install
-    ) ELSE (
-        goto :downloadFail
     )
+
+    call :download "https://officecdn.microsoft.com/pr/wsus/setup.exe" "%~dp0bin\setup.exe"
+    if not exist "%~dp0bin\setup.exe" goto :downloadFail
+    for %%S in ("%~dp0bin\setup.exe") do if %%~zS LSS 1000000 goto :downloadFail
+
+    CLS
+    echo.
+    echo.
+    echo.
+    call :L %cA% "                    Download finalizado com sucesso." 
+    echo.
+    echo. & timeout /t 1 > NUL
+    GOTO :Install
+
+
+:netCheck
+    @REM Sonda de conectividade apenas informativa; o download Ç tentado de
+    @REM qualquer forma. N«O usar 'ping | find "TTL="': a resposta IPv6 n∆o traz
+    @REM "TTL=" e o texto do ping muda conforme o idioma do Windows.
+    set "_net=0"
+    where curl >nul 2>&1 && curl -s -f -I -L --connect-timeout 8 --max-time 20 "https://officecdn.microsoft.com/pr/wsus/setup.exe" >nul 2>&1 && set "_net=1"
+    if "%_net%"=="1" goto :eof
+    ping -n 1 -w 4000 officecdn.microsoft.com >nul 2>&1 && set "_net=1"
+    goto :eof
     
 :downloadFail
     CLS
@@ -786,20 +813,24 @@ cls
         )
 
         if defined _pt (
-            if /i "%_pt%"=="0" set _pt=13
-            if /i "%_pt%"=="D" set _pt=12
-            if /i "%_pt%"=="R" set _pt=11
-            if /i "%_pt%"=="A" set _pt=10
-            if /i "%_pt%"=="L" set _pt=9
+            if /i "%_pt%"=="0" set _pt=14
+            if /i "%_pt%"=="D" set _pt=13
+            if /i "%_pt%"=="R" set _pt=12
+            if /i "%_pt%"=="A" set _pt=11
+            if /i "%_pt%"=="L" set _pt=10
             set _er=!_pt!
         )
 
-        if "%_er%"=="13" goto :eof
+        @REM Numeraá∆o alinhada a 'choice /c 123456789LARD0': L=10, A=11,
+        @REM R=12, D=13, 0=14. Antes estava deslocada em 1, ent∆o cada letra
+        @REM executava a aá∆o da opá∆o seguinte, [D] sa°a e [0] n∆o sa°a.
+        if "%_er%"=="14" goto :eof
 
         if %winbuild% GEQ 7600 (
-            if "%_er%"=="12" goto :KeysU
-            if "%_er%"=="11" goto :LcnsT
-            if "%_er%"=="10" goto :LcnsR
+            if "%_er%"=="13" goto :KeysU
+            if "%_er%"=="12" goto :LcnsT
+            if "%_er%"=="11" goto :LcnsR
+            if "%_er%"=="10" goto :LcnsC
             if "%_er%"=="9" goto :verifyExistingInstallation
         )
 
@@ -861,10 +892,13 @@ cls
         )
 
         if defined _pt (
-            if /i "%_pt%"=="0" set _pt=9
+            if /i "%_pt%"=="0" set _pt=10
             set _er=!_pt!
         )
         
+        @REM 'choice /c 1234567890' devolve 10 na tecla 0; sem este caso a
+        @REM opá∆o [0] SAIR apenas recarregava o menu.
+        if "%_er%"=="10" goto :eof
         if "%_er%"=="9" goto :Menu
         if "%_er%"=="8" if %winbuild% GEQ 10240 ( if %tOUWP% equ 1 ( set tOUWP=0 ) else ( set tOUWP=1 ) & goto :mALL)
         if "%_er%"=="7" ( if %tOM11% equ 1 ( set tOM11=0 ) else ( set tOM11=1 ) & goto :mALL )
