@@ -2,6 +2,7 @@
 @set uivr=v2
 @echo off
 chcp 850 >nul
+if /i "%~1"=="/xmlwatch" goto :xmlWatch
 mode con: cols=70 lines=7
 
 @REM Office Manager - Script de gerenciamento do Microsoft 365 Apps
@@ -48,26 +49,26 @@ cls
 
     cls
     echo.
-    if "%_hasNet%"=="1" call :L %c7%   "   .NET Framework 4.5+: " %cA% "OK"
-    if "%_hasNet%"=="0" call :L %c7%   "   .NET Framework 4.5+: " %cC% "AUSENTE"
-    if defined _psver call :L %c7%     "      PowerShell / WMF: " %cA% "OK (" %cE% "v%_psver%" %cA% ")"
-    if not defined _psver call :L %c7% "   PowerShell 3+ / WMF: " %cC% "AUSENTE"
+    if "%_hasNet%"=="1" call :LC %c7% ".NET Framework 4.5+: " %cA% "OK"
+    if "%_hasNet%"=="0" call :LC %c7% ".NET Framework 4.5+: " %cC% "AUSENTE"
+    if defined _psver call :LC %c7% "PowerShell / WMF: " %cA% "OK (" %cE% "v%_psver%" %cA% ")"
+    if not defined _psver call :LC %c7% "PowerShell 3+ / WMF: " %cC% "AUSENTE"
     echo.
 
     if "%_leg%"=="1" (
-        call :L %c6% "   Windows legado: seguindo sem alteracoes."
+        call :LC %c6% "Windows legado: seguindo sem alteracoes."
         timeout /t 2 /nobreak >nul
         cls
         goto :eof
     )
     if defined _psver (
-        call :L %cA% "   Tudo certo para prosseguir."
+        call :LC %cA% "Tudo certo para prosseguir."
         timeout /t 2 /nobreak >nul
         cls
         goto :eof
     )
 
-    call :L %cE% "   PowerShell 3+ ausente. Preparando pre-requisitos (Windows 7+)..."
+    call :LC %cE% "PowerShell 3+ ausente. Preparando pre-requisitos (Windows 7+)..."
     timeout /t 1 /nobreak >nul
     call :enableTls
     call :installDotNet45
@@ -93,18 +94,18 @@ cls
     
     cls
     echo.
-    echo  Baixando .NET Framework 4.5 (~65 MB)...
+    call :LC %c7% "Baixando .NET Framework 4.5 (~65 MB)..."
     
     set "_dnFile=%TEMP%\dotnet45_setup.exe"
     call :download "https://download.microsoft.com/download/E/2/1/E21644B5-2DF2-47C2-91BD-63C560427900/NDP452-KB2901907-x86-x64-AllOS-ENU.exe" "%_dnFile%"
     
     if not exist "%_dnFile%" (
-        set "msg=ERRO: falha ao baixar o .NET 4.5." & goto :prereqFail
+        set "msg=Falha ao baixar o .NET 4.5." & goto :prereqFail
     )
     
     cls
     echo.
-    echo  Instalando .NET Framework 4.5 (pode levar v†rios minutos)...
+    call :LC %c7% "Instalando .NET Framework 4.5 (pode levar v†rios minutos)..."
     
     "%_dnFile%" /q /norestart
     set "_ec=%errorlevel%"
@@ -113,7 +114,7 @@ cls
     if "%_ec%"=="3010" goto :setupReboot
     if "%_ec%"=="1641" goto :setupReboot
 
-    set "msg=ERRO: falha na instalaá∆o do .NET 4.5 (c¢digo %_ec%)."
+    set "msg=Falha na instalaá∆o do .NET 4.5 (c¢digo %_ec%)."
     
     goto :prereqFail
 
@@ -132,13 +133,13 @@ cls
     
     cls
     echo.
-    echo  Baixando Windows Management Framework 5.0 (%_a%)...
+    call :LC %c7% "Baixando Windows Management Framework 5.0 (%_a%)..."
     call :download "%_wmfUrl%" "%_wmfFile%"
-    if not exist "%_wmfFile%" ( set "msg=ERRO: falha ao baixar o WMF 5.0." & goto :prereqFail )
+    if not exist "%_wmfFile%" ( set "msg=Falha ao baixar o WMF 5.0." & goto :prereqFail )
     
     cls
     echo.
-    echo  Instalando Windows Management Framework 5.0...
+    call :LC %c7% "Instalando Windows Management Framework 5.0..."
     
     wusa "%_wmfFile%" /quiet /norestart
     set "_ec=%errorlevel%"
@@ -148,7 +149,7 @@ cls
     if "%_ec%"=="0"       goto :setupReboot
     if "%_ec%"=="3010"    goto :setupReboot
     
-    set "msg=ERRO: falha na instalaá∆o do WMF 5.0 (c¢digo %_ec%). Confirme que Ç Windows 7 SP1."
+    set "msg=Falha na instalaá∆o do WMF 5.0 (c¢digo %_ec%). Confirme que Ç Windows 7 SP1."
     goto :prereqFail
 
 
@@ -184,26 +185,23 @@ cls
     mode con: cols=70 lines=7
     
     cls & echo.
-    echo  PrÇ-requisitos configurados.
-    echo  REINICIE o computador e execute este script novamente
-    echo  para concluir.
+    call :LC %c7% "PrÇ-requisitos configurados."
+    call :LC %c7% "REINICIE o computador e execute este script novamente"
+    call :LC %c7% "para concluir."
     echo. & timeout /t 1 /nobreak > NUL
     exit
 
 
 :prereqFail
-    mode con: cols=70 lines=12
-    
-    cls & echo.
-    echo  %msg%
+    mode con: cols=70 lines=15
+    call :showError "%msg%"
+    call :LC %c7% "O TLS 1.2 foi configurado. REINICIE o computador e rode o"
+    call :LC %c7% "script novamente - o download autom†tico pode funcionar"
+    call :LC %c7% "ap¢s o rein°cio."
     echo.
-    echo  O TLS 1.2 foi configurado. REINICIE o computador e rode o
-    echo  script novamente - o download autom†tico pode funcionar
-    echo  ap¢s o rein°cio.
-    echo.
-    echo  Se persistir, instale manualmente e reinicie:
-    echo    .NET 4.5: https://dotnet.microsoft.com/download/dotnet-framework/net452
-    echo     WMF 5.1: https://www.microsoft.com/download/details.aspx?id=54616
+    call :LC %c7% "Se persistir, instale manualmente e reinicie:"
+    call :LC %c7% ".NET 4.5: https://dotnet.microsoft.com/download/dotnet-framework/net452"
+    call :LC %c7% "WMF 5.1: https://www.microsoft.com/download/details.aspx?id=54616"
     echo. & timeout /t 2 /nobreak > NUL
     exit
 
@@ -375,9 +373,8 @@ cls
 
 :verifyExistingInstallation
     %_Nul3% call :CloseC2R
-    set "WRD=%PROGRAMFILES%\Microsoft Office\root\Office16\WINWORD.EXE"
-    set "EXC=%PROGRAMFILES%\Microsoft Office\root\Office16\EXCEL.EXE"
-    set "PPT=%PROGRAMFILES%\Microsoft Office\root\Office16\POWERPNT.EXE"
+    @REM Detecta o Office em Program Files (64-bit) ou Program Files (x86) (32-bit): ver :locateOffice
+    call :locateOffice
 
     if exist "%WRD%" ( if exist "%EXC%" ( if exist "%PPT%" GOTO :changeInstallation ) )
 
@@ -388,13 +385,10 @@ cls
     mode con: cols=70 lines=7
     title Instalaá∆o existente detectada 
 
-    cls & echo.
-    call :L %cA% "   Uma instalaá∆o existente do Office foi detectada."
-    echo.
-    call :L %cC% "   [D]" %c7% " Desinstalar, " 
-    call :L %cB% "   [A]" %c7% " Ativar, " 
-    call :L %cE% "   [C]" %c7% " Continuar"
-    choice /C DAC /N 
+    set "_mTitle=Uma instalaá∆o existente do Office foi detectada."
+    set "_mTitleColor=93"
+    set "_mOpts=D|Desinstalar;A|Ativar;C|Continuar"
+    call :arrowMenu
     
     if %errorlevel%==3 goto :setUpConfiguration
     if %errorlevel%==2 goto :activate
@@ -407,159 +401,190 @@ cls
 
     if exist "Configuration.xml" (
         cls & echo.
-        call :L %c7% "                   Arquivo de configuraá∆o " %cA% "encontrado." 
+        call :LC %c7% "Arquivo de configuraá∆o " %cA% "encontrado." 
         timeout /t 1 /nobreak > NUL
         cls
         goto :setUpInstaller
     )
 
-    cls & echo.
-    call :L %cA% "   [1]" %c7% " Selecione a arquitetura do Office a ser instalada:"
+    @REM O XML e montado a cada resposta em Configuration.partial e so vira Configuration.xml no fim.
+    if exist "Configuration.partial" del /f /q "Configuration.partial"
+    call :xmlViewer
+
+    set "_mTitle=Selecione a arquitetura do Office a ser instalada:"
+    set "_mOpts="
     if %xBit%==x64 (
-        call :L %c7% "      1 - 64-bits" %cA% " Recomendado"
-        echo       2 - 32-bits 
+        call :addOpt 1 "64-bits" 1 "Recomendado"
+        call :addOpt 2 "32-bits" 2
     ) else (
-        echo       1 - 64-bits
-        call :L %c7% "      2 - 32-bits" %cA% " Recomendado"
+        call :addOpt 1 "64-bits" 1
+        call :addOpt 2 "32-bits" 2 "Recomendado"
     )
-    choice /c 12 /n /m "> "
+    call :arrowMenu
     if %errorlevel%==1 set "ARCH=64"
     if %errorlevel%==2 set "ARCH=32"
 
-    cls & echo.
-    call :L %cA% "   [2]" %c7% " Selecione o canal de atualizaá∆o:"
-    echo       1 - Current (Mensal)
-    echo       2 - MonthlyEnterprise (Mensal Empresarial)
-    echo       3 - SemiAnnual (Semestral)
-    choice /c 123 /n /m "> "
+    set "_mTitle=Selecione o canal de atualizaá∆o:"
+    set "_mOpts="
+    call :addOpt 1 "Current (Mensal)" 1
+    call :addOpt 2 "MonthlyEnterprise (Mensal Empresarial)" 2
+    call :addOpt 3 "SemiAnnual (Semestral)" 3
+    call :arrowMenu
     if %errorlevel%==1 set "CHANNEL=Current"
     if %errorlevel%==2 set "CHANNEL=MonthlyEnterprise"
     if %errorlevel%==3 set "CHANNEL=SemiAnnual"
+    (
+        echo ^<Configuration^>
+        echo   ^<Add OfficeClientEdition="%ARCH%" Channel="%CHANNEL%"^>
+    ) > Configuration.partial
 
-    cls & echo.
-    call :L %cA% "    [3]" %c7% " Selecione o produto:"
-    echo       1 - Microsoft 365 (Sem Teams)
-    echo       2 - Microsoft 365 (Com Teams)
-    choice /c 12 /n /m "> "
+    set "_mTitle=Selecione o produto:"
+    set "_mOpts="
+    call :addOpt 1 "Microsoft 365 (Sem Teams)" 1
+    call :addOpt 2 "Microsoft 365 (Com Teams)" 2
+    call :arrowMenu
     if %errorlevel%==1 set "PRODUCT=O365ProPlusEEANoTeamsRetail"
     if %errorlevel%==2 set "PRODUCT=O365ProPlusRetail"
+    >> Configuration.partial echo     ^<Product ID="%PRODUCT%"^>
 
-    cls & echo.
-    call :L %cA% "   [4]" %c7% " Selecione o idioma:"
-    echo       1 - Portuguàs (Brasil) [pt-BR]
-    echo       2 - Inglàs (EUA) [en-US]
-    echo       3 - Personalizado (ex.: en-GB, es-ES, etc.)
-    choice /c 123 /n /m "> "
+    set "_mTitle=Selecione o idioma:"
+    set "_mOpts="
+    call :addOpt 1 "Portuguàs (Brasil) [pt-BR]" 1
+    call :addOpt 2 "Inglàs (EUA) [en-US]" 2
+    call :addOpt 3 "Personalizado (ex.: en-GB, es-ES, etc.)" 3
+    call :arrowMenu
     if %errorlevel%==1 set "LANG=pt-BR"
     if %errorlevel%==2 set "LANG=en-US"
     if %errorlevel%==3 (
         cls & echo.
-        set /p "LANG=   Digite o idioma personalizado: "
+        call :center "Digite o idioma personalizado: "
+        set /p "LANG=%_ctr%"
     )
+    >> Configuration.partial echo       ^<Language ID="%LANG%" /^>
 
-    call :setupAsk & set "EXC_ACCS=1" & choice /c EM /n /m "> Access: "
-    if %errorlevel%==2 set "EXC_ACCS=0"
+    call :askExclude EXC_ACCS "Access" Access
 
-    @REM call :setupAsk & set "EXC_EXCL=1" & choice /c EM /n /m "> Excel: "
-    @REM if %errorlevel%==2 set "EXC_EXCL=0"
+    @REM call :askExclude EXC_EXCL "Excel" Excel
 
-    call :setupAsk & set "EXC_ONED=1" & choice /c EM /n /m "> OneDrive: "
-    if %errorlevel%==2 set "EXC_ONED=0"
+    call :askExclude EXC_ONED "OneDrive" OneDrive
 
-    call :setupAsk & set "EXC_OUTL=1" & choice /c EM /n /m "> Outlook: "
-    if %errorlevel%==2 set "EXC_OUTL=0"
+    call :askExclude EXC_OUTL "Outlook" Outlook
 
-    call :setupAsk & set "EXC_NOUT=1" & choice /c EM /n /m "> Novo Outlook: "
-    if %errorlevel%==2 set "EXC_NOUT=0"
+    call :askExclude EXC_NOUT "Novo Outlook" OutlookForWindows
 
-    @REM call :setupAsk & set "EXC_POWP=1" & choice /c EM /n /m "> PowerPoint: "
-    @REM if %errorlevel%==2 set "EXC_POWP=0"
+    @REM call :askExclude EXC_POWP "PowerPoint" PowerPoint
 
-    call :setupAsk & set "EXC_PUBL=1" & choice /c EM /n /m "> Publisher: "
-    if %errorlevel%==2 set "EXC_PUBL=0"
+    call :askExclude EXC_PUBL "Publisher" Publisher
 
-    call :setupAsk & set "EXC_NOTE=1" & choice /c EM /n /m "> OneNote: "
-    if %errorlevel%==2 set "EXC_NOTE=0"
+    call :askExclude EXC_NOTE "OneNote" OneNote
 
-    call :setupAsk & set "EXC_SKYP=1" & choice /c EM /n /m "> Skype for Business: "
-    if %errorlevel%==2 set "EXC_SKYP=0"
+    call :askExclude EXC_SKYP "Skype for Business" Lync
 
-    @REM call :setupAsk & set "EXC_WORD=1" & choice /c EM /n /m "> Word: "
-    @REM if %errorlevel%==2 set "EXC_WORD=0"
+    @REM call :askExclude EXC_WORD "Word" Word
 
-    call :setupAsk & set "EXC_GROO=1" & choice /c EM /n /m "> OneDrive for Business: "
-    if %errorlevel%==2 set "EXC_GROO=0"
+    call :askExclude EXC_GROO "OneDrive for Business" Groove
 
-    call :setupAsk & set "EXC_BING=1" & choice /c EM /n /m "> Bing (Pesquisa no Bing): "
-    if %errorlevel%==2 set "EXC_BING=0"
+    call :askExclude EXC_BING "Bing (Pesquisa no Bing)" Bing
 
-    call :setupAsk & set "EXC_TEAM=0"
-    if not "%PRODUCT%"=="O365ProPlusRetail" goto :genSetUpXML
-    set "EXC_TEAM=1"
-    choice /c EM /n /m "> Teams: "
-    if %errorlevel%==2 set "EXC_TEAM=0"
+    set "EXC_TEAM=0"
+    if "%PRODUCT%"=="O365ProPlusRetail" call :askExclude EXC_TEAM "Teams" Teams
     
     :genSetUpXML
-        cls & echo.
-        echo.
-        call :L %c7% "                   Gerando arquivo de configuraá∆o..." 
+        call :showInfo "Gerando arquivo de configuraá∆o..."
 
         (
-            echo ^<Configuration^>
-            echo   ^<Add OfficeClientEdition="%ARCH%" Channel="%CHANNEL%"^>
-            echo     ^<Product ID="%PRODUCT%"^>
-            echo       ^<Language ID="%LANG%" /^>
-            
-            if "%EXC_ACCS%"=="1" echo       ^<ExcludeApp ID="Access" /^>
-            @REM if "%EXC_EXCL%"=="1" echo       ^<ExcludeApp ID="Excel" /^>
-            if "%EXC_ONED%"=="1" echo       ^<ExcludeApp ID="OneDrive" /^>
-            if "%EXC_OUTL%"=="1" echo       ^<ExcludeApp ID="Outlook" /^>
-            if "%EXC_NOUT%"=="1" echo       ^<ExcludeApp ID="OutlookForWindows" /^>
-            if "%EXC_PUBL%"=="1" echo       ^<ExcludeApp ID="Publisher" /^>
-            @REM if "%EXC_POWP%"=="1" echo       ^<ExcludeApp ID="PowerPoint" /^> 
-            if "%EXC_NOTE%"=="1" echo       ^<ExcludeApp ID="OneNote" /^>
-            if "%EXC_SKYP%"=="1" echo       ^<ExcludeApp ID="Lync" /^>
-            if "%EXC_GROO%"=="1" echo       ^<ExcludeApp ID="Groove" /^>
-            @REM if "%EXC_WORD%"=="1" echo       ^<ExcludeApp ID="Word" /^>
-            if "%EXC_BING%"=="1" echo       ^<ExcludeApp ID="Bing" /^>
-            if "%EXC_TEAM%"=="1" echo       ^<ExcludeApp ID="Teams" /^>
-            
             echo     ^</Product^>
             echo   ^</Add^>
             echo   ^<Updates Enabled="TRUE" /^>
             echo   ^<RemoveMSI /^>
             echo   ^<Display Level="Full" AcceptEULA="TRUE" /^>
             echo ^</Configuration^>
-        ) > Configuration.xml
+        ) >> Configuration.partial
+        move /y Configuration.partial Configuration.xml >nul
 
-        cls & echo.
-        echo.
-        call :L %c7% "                   Arquivo de configuraá∆o criado."
+        call :showInfo "Arquivo de configuraá∆o criado."
         timeout /t 2 /nobreak > NUL
         
 
     goto :setUpInstaller
 
 
-:setupAsk
-    cls
-    echo.
-    call :L %c7% "   " %cA% "[5]" %c7% " Selecione apps para" %c4% " EXCLUIR" %c7% ":"
-    call :L %c7% "      " "41;33m" "[E]" %c7% " - Excluir"
-    call :L %c7% "      " "42;96m" "[M]" %c7% " - Manter"
-    echo.
+:xmlViewer
+    @REM Abre a janela auxiliar (ver :xmlWatch) ao lado da principal, sem tirar o foco do menu.
+    @REM Atencao: nao usar %CD% aqui; este script define a variavel "cD" (cor), que sobrescreve o %CD% dinamico.
+    @REM Com PowerShell: posiciona a janela; sem ele: abre uma janela comum (o Windows escolhe o lugar).
+    set "_xa="%~f0" /xmlwatch "%~dp0bin\Configuration.partial" "%~dp0bin\Configuration.xml""
+    if not defined _psver start "Configuration.xml" cmd /c "%_xa%" & goto :eof
+    @REM Declaracoes Win32 (QQ vira aspas)
+    set "_xc=using System;using System.Text;using System.Runtime.InteropServices;public delegate bool EW(IntPtr h,IntPtr l);public struct R{public int L,T,Rt,B;}public class W{[DllImport(QQuser32.dllQQ)]public static extern bool GetWindowRect(IntPtr h,out R r);[DllImport(QQuser32.dllQQ)]public static extern bool MoveWindow(IntPtr h,int x,int y,int w,int ht,bool p);[DllImport(QQuser32.dllQQ)]public static extern bool ShowWindow(IntPtr h,int c);[DllImport(QQuser32.dllQQ)]public static extern bool SetForegroundWindow(IntPtr h);[DllImport(QQuser32.dllQQ)]static extern bool EnumWindows(EW f,IntPtr l);[DllImport(QQuser32.dllQQ,CharSet=CharSet.Auto)]static extern int GetWindowText(IntPtr h,StringBuilder b,int n);public static IntPtr Find(string s){IntPtr r=IntPtr.Zero;EnumWindows((h,l)=>{StringBuilder b=new StringBuilder(256);GetWindowText(h,b,256);if(b.ToString().IndexOf(s)>=0){r=h;return false;}return true;},IntPtr.Zero);return r;}[DllImport(QQkernel32.dllQQ)]public static extern IntPtr GetConsoleWindow();[DllImport(QQuser32.dllQQ)]public static extern IntPtr GetForegroundWindow();}"
+    @REM Mede a janela principal (a do proprio console; se vier zerada, a em primeiro plano) e abre o visualizador MINIMIZADO (assim ele nao rouba o foco do menu)
+    set "_xl=try{$q=[char]34;Add-Type $env:_xc.Replace('QQ',[string]$q);$m=[W]::GetConsoleWindow();$r=New-Object R;[void][W]::GetWindowRect($m,[ref]$r);if($r.Rt -le 0){$m=[W]::GetForegroundWindow();[void][W]::GetWindowRect($m,[ref]$r)};"
+    set "_xl=%_xl%[void](Start-Process cmd -ArgumentList ('/c '+$q+$env:_xa+$q) -WindowStyle Minimized);"
+    @REM A janela de console pertence ao conhost.exe (Process.MainWindowHandle do cmd e 0): localiza varrendo as janelas pelo titulo definido em :xmlWatch (em console elevado o titulo ganha o prefixo Administrador:)
+    set "_xl=%_xl%$h=[IntPtr]::Zero;for($i=0;$i -lt 50 -and $h -eq [IntPtr]::Zero;$i++){Start-Sleep -Milliseconds 100;$h=[W]::Find('Configuration.xml (ao vivo)')};"
+    @REM Restaura SEM ativar (ShowWindow 4), posiciona a direita da principal mantendo o tamanho definido por mode con, e devolve o foco
+    set "_xl=%_xl%$v=New-Object R;if($h -ne [IntPtr]::Zero){[void][W]::ShowWindow($h,4);Start-Sleep -Milliseconds 400;[void][W]::GetWindowRect($h,[ref]$v);"
+    set "_xl=%_xl%if($r.Rt -gt 0){[void][W]::MoveWindow($h,$r.Rt,$r.T,$v.Rt-$v.L,$v.B-$v.T,$true)}};[void][W]::SetForegroundWindow($m);"
+    @REM Registro de diagnostico em %TEMP%\omxml.log (principal, retangulo, janela do XML); erros do lancador caem no catch
+    set "_xl=%_xl%Set-Content (Join-Path $env:TEMP 'omxml.log') ('m='+$m+' r='+$r.L+','+$r.T+','+$r.Rt+','+$r.B+' h='+$h+' v='+$v.L+','+$v.T+','+$v.Rt+','+$v.B)}"
+    set "_xl=%_xl%catch{Set-Content (Join-Path $env:TEMP 'omxml.log') ('ERRO: '+$_.Exception.Message)}"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "%_xl%"
+    goto :eof
+
+:xmlWatch
+    @REM Modo auxiliar (chamado por :xmlViewer): %2 = XML parcial | %3 = XML final.
+    @REM A cada segundo compara o tamanho do arquivo; se mudou, limpa a tela e mostra o conteudo.
+    @REM Encerra 4 s depois de o parcial virar Configuration.xml, ou se o parcial sumir (execucao cancelada).
+    mode con: cols=90 lines=42
+    title Configuration.xml (ao vivo)
+    set "_last=x"
+    set "_seen=0"
+
+    :xw_loop
+    set "_src="
+    if exist "%~2" set "_src=%~2"
+    if exist "%~2" set "_seen=1"
+    if not defined _src if exist "%~3" set "_src=%~3"
+    if not defined _src if "%_seen%"=="1" exit
+    set "_cur="
+    if defined _src for %%a in ("%_src%") do set "_cur=%%~za"
+    if not "%_cur%"=="%_last%" cls
+    if not "%_cur%"=="%_last%" if defined _src type "%_src%"
+    set "_last=%_cur%"
+    if defined _src if "%_src%"=="%~3" ( ping -n 5 127.0.0.1 >nul & exit )
+    ping -n 2 127.0.0.1 >nul
+    goto :xw_loop
+
+
+:askExclude
+    @REM %1 = variavel que recebe 1 (excluir) ou 0 (manter) | %2 = nome do app | %3 = ID do app no XML
+    set "_mTitle=Excluir %~2?"
+    set "_mFoot="
+    set "_mOpts="
+    @REM "Manter" vem primeiro: o Enter sozinho mantem o app (instala). Os codigos nao mudam: 1 = excluir, 2 = manter.
+    call :addOpt M "Manter"  2
+    call :addOpt E "Excluir" 1
+    call :arrowMenu
+    if %errorlevel%==1 (
+        set "%~1=1"
+        >> Configuration.partial echo       ^<ExcludeApp ID="%~3" /^>
+    ) else (
+        set "%~1=0"
+    )
     goto :eof
 
 
 :setUpInstaller
     title Verificando arquivo existente...
-    del /S /Q "%PROGRAMFILES%\Common Files\microsoft shared\ClickToRun" 2> NUL
+    @REM Remove o cliente C2R antigo POR INTEIRO. Apagar so os arquivos que nao estao em uso (del /S /Q com o servico
+    @REM rodando) deixa o cliente incompleto e o setup falha com o erro 0-2031 (0xC06D007E, modulo nao encontrado).
+    @REM Por isso o servico e os processos sao encerrados antes e a pasta e removida com rd /s /q.
+    net stop ClickToRunSvc /y >nul 2>&1
+    taskkill /f /im OfficeClickToRun.exe >nul 2>&1
+    taskkill /f /im OfficeC2RClient.exe >nul 2>&1
+    if exist "%PROGRAMFILES%\Common Files\microsoft shared\ClickToRun" rd /s /q "%PROGRAMFILES%\Common Files\microsoft shared\ClickToRun" 2>nul
 
-    cls
-    echo.
-    echo.
-    echo.
-    call :L %c7% "                   Verificando arquivo existente..."
+    call :showInfo "Verificando arquivo existente..."
     timeout /t 1 > NUL
     
     cls
@@ -568,51 +593,33 @@ cls
         echo.
         echo.
         echo.
-        call :L %c7% "               Instalador local" %c2% " encontrado." %c6% " Atualizando..."
+        call :LC %c7% "Instalador local" %c2% " encontrado." %c6% " Atualizando..."
         echo.
         echo.
         del /F /Q setup.exe > NUL
         goto :downloadSetup
     ) else (
-        echo.
-        echo.
-        echo.
-        call :L %c7% "                   Baixando o instalador do Office..."
+        call :showInfo "Baixando o instalador do Office..."
         goto :downloadSetup
     )
 
 :downloadSetup
     TITLE Conectando...
-    CLS
-    echo.
-    echo.
-    echo. 
-    call :L %c8% "                Conectando ao servidor da MICROSOFT..."
-    echo.
-    echo. & timeout /t 2 > NUL
+    call :showInfo "Conectando ao servidor da MICROSOFT..." %c8%
+    timeout /t 2 > NUL
 
     call :netCheck
     if "%_net%"=="1" (
-        CLS
-        echo.
-        echo.
-        echo.
-        call :L %c2% "                                Conectado."
-        echo.
-        echo. & timeout /t 1 > NUL
+        call :showInfo "Conectado." %c2%
+        timeout /t 1 > NUL
     )
 
     call :download "https://officecdn.microsoft.com/pr/wsus/setup.exe" "%~dp0bin\setup.exe"
     if not exist "%~dp0bin\setup.exe" goto :downloadFail
     for %%S in ("%~dp0bin\setup.exe") do if %%~zS LSS 1000000 goto :downloadFail
 
-    CLS
-    echo.
-    echo.
-    echo.
-    call :L %cA% "                    Download finalizado com sucesso." 
-    echo.
-    echo. & timeout /t 1 > NUL
+    call :showInfo "Download finalizado com sucesso." %cA%
+    timeout /t 1 > NUL
     GOTO :Install
 
 
@@ -628,30 +635,26 @@ cls
     
 :downloadFail
     CLS
-    call :L "44;31m" "                                ERRO                                  "
-    echo.
-    ECHO  Falha ao baixar o setup.exe. Verifique sua conex∆o com a internet.
-    echo.
-    ECHO  Deseja tentar novamente? [S/N] & CHOICE /C SN /N /M ""
+    call :showError "Falha ao baixar o setup.exe. Verifique sua conex∆o com a internet."
+    call :LC %c7% "Deseja tentar novamente? [S/N]"
+    CHOICE /C SN /N
     IF ERRORLEVEL 2 GOTO :cleanUp
     IF ERRORLEVEL 1 GOTO :downloadSetup
 
 :Install
     title Instalando Office
     if not exist "%~dp0bin\setup.exe" goto :installError
-    cls & echo.
-    echo.
-    echo.
-    call :L %c7% "                   Iniciando a instalaá∆o do Office..."
+    call :showInfo "Iniciando a instalaá∆o do Office..."
     timeout /t 2 > NUL
     GOTO :aWait 
 
 
 :aWait
     cls & echo.
-    call :L "44;37m" " Instalando o Office. Isso pode levar v†rios minutos...               "
+    call :center "Instalando o Office. Isso pode levar v†rios minutos..." fill
+    call :L "44;37m" "%_ctr%"
     echo.
-    call :L %c6% " Aguarde a conclus∆o; n∆o feche esta janela.                          "
+    call :LC %c6% "Aguarde a conclus∆o; n∆o feche esta janela."
     echo.
     "%~dp0bin\setup.exe" /configure "%~dp0bin\Configuration.xml"
 
@@ -659,6 +662,7 @@ cls
 
 
 :aWaitStart
+    call :locateOffice
     tasklist /FI "IMAGENAME eq OfficeC2RClient.exe" 2>NUL | find /I "OfficeC2RClient.exe" >NUL && goto :aWaitRun
     if exist "%WRD%" goto :aWaitRun
     set /a "_w+=1"
@@ -673,6 +677,7 @@ cls
 
 
 :aWaitConfirm
+    call :locateOffice
     if exist "%WRD%" goto :verifyInstallation
     set /a "_f+=1"
     if %_f% GEQ 12 goto :installError
@@ -680,20 +685,77 @@ cls
     goto :aWaitConfirm
 
 
+:locateOffice
+    @REM Office 32-bit em Windows 64-bit fica em "Program Files (x86)", e o 64-bit em "Program Files".
+    @REM Define _O16 e WRD/EXC/PPT conforme a pasta onde o Word realmente estiver (usado na espera pela
+    @REM instalacao e na verificacao; sem isso, uma instalacao 32-bit bem sucedida era dada como erro).
+    set "_O16=%PROGRAMFILES%\Microsoft Office\root\Office16"
+    if not exist "%_O16%\WINWORD.EXE" if exist "%ProgramFiles(x86)%\Microsoft Office\root\Office16\WINWORD.EXE" set "_O16=%ProgramFiles(x86)%\Microsoft Office\root\Office16"
+    set "WRD=%_O16%\WINWORD.EXE"
+    set "EXC=%_O16%\EXCEL.EXE"
+    set "PPT=%_O16%\POWERPNT.EXE"
+    goto :eof
+
+
 :verifyInstallation
+    call :locateOffice
     cls & echo.
-    echo  Verificando instalaá∆o do Office... & timeout /t 2 > NUL
+    call :LC %c7% "Verificando instalaá∆o do Office..." & timeout /t 2 > NUL
 
     if not exist "%WRD%" goto :installError
     if not exist "%EXC%" goto :installError
     if not exist "%PPT%" goto :installError
+    call :purgeExcludedApps
     goto :activate
+
+
+:purgeExcludedApps
+    @REM O C2R das builds atuais ignora <ExcludeApp ID="Publisher"> no
+    @REM O365ProPlusRetail: a exclusao e gravada no registro, mas o instalador
+    @REM entrega o MSPUB.EXE e cria atalho e App Path assim mesmo.
+    @REM Aqui removemos os pontos de entrada dos apps que o XML pediu excluir
+    @REM e que ainda assim vieram instalados.
+    if not exist "%~dp0bin\Configuration.xml" goto :eof
+    call :locateOffice
+
+    call :purgeApp Publisher MSPUB.EXE    Publisher
+    call :purgeApp Access    MSACCESS.EXE Access
+    call :purgeApp OneNote   ONENOTE.EXE  OneNote
+    call :purgeApp Outlook   OUTLOOK.EXE  Outlook
+
+    goto :eof
+
+
+:purgeApp
+    @REM %1 = ID usado no ExcludeApp | %2 = executavel | %3 = nome do atalho
+    findstr /i /r /c:"ExcludeApp ID=.%~1." "%~dp0bin\Configuration.xml" >nul 2>&1 || goto :eof
+    if not exist "%_O16%\%~2" goto :eof
+
+    cls & echo.
+    call :LC %c7% "Removendo " %cA% "%~3" %c7% " ignorado pelo C2R..."
+
+    del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\%~3.lnk" >nul 2>&1
+    del /f /q "%APPDATA%\Microsoft\Windows\Start Menu\Programs\%~3.lnk" >nul 2>&1
+    reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\%~2" /f >nul 2>&1
+
+    if /i "%~1"=="Publisher" (
+        for %%# in (Publisher.Document.16 Publisher.Template.16 Publisher.MacroEnabledDocument.16) do reg delete "HKCR\%%#" /f >nul 2>&1
+        for %%# in (.pub .pubhtml .pubmhtml) do (
+            reg delete "HKCR\%%#" /f >nul 2>&1
+            reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\%%#" /f >nul 2>&1
+        )
+    )
+
+    @REM Renomear em vez de apagar: o C2R nao acusa corrupcao e da para reverter.
+    ren "%_O16%\%~2" "%~2.excluded" >nul 2>&1
+
+    timeout /t 1 /nobreak >nul
+    goto :eof
 
 
 :activate
     cls & echo.
-    echo  Instalaá∆o verificada. Ativando Office
-    call :L %c7% " via " %c2% "MASSGRAVE" %c7% "..."
+    call :LC %c7% "Instalaá∆o verificada. Ativando Office via " %c2% "MASSGRAVE" %c7% "..."
     timeout /t 2 > NUL
 
     cls & echo.
@@ -704,11 +766,9 @@ cls
 
 :installError
     cls
-    call :L "44;31m" "                                ERRO                                  "
-    echo.
-    echo  Ocorreu um erro durante a instalaá∆o do Office. Tente novamente.
-    echo.
-    choice /c sn /n /m "Tentar novamente? [S/N] "
+    call :showError "Ocorreu um erro durante a instalaá∆o do Office. Tente novamente."
+    call :LC %c7% "Tentar novamente? [S/N]"
+    choice /c sn /n >nul
     
     if ERRORLEVEL 2 goto :cleanUp
     if ERRORLEVEL 1 goto :setUpInstaller
@@ -719,10 +779,7 @@ cls
     
     call :ensureBin
     
-    cls & echo.
-    echo.
-    echo.
-    echo               Desinstalando a vers∆o existente do Office...
+    call :showInfo "Desinstalando a vers∆o existente do Office..."
     set OsppHook=1
     sc query osppsvc %_Nul3%
     if %ERRORLEVEL% equ 1060 set OsppHook=0
@@ -771,45 +828,55 @@ cls
 
 
     :Menu
-        mode con: cols=70 lines=23
+        @REM Altura = linhas de _mOpts (ver :menuOpts) + rodape + folga; se faltar, a tela rola e o menu deixa residuos.
+        mode con: cols=70 lines=26
         set _er=0
         set _pt=
         call :Hdr
+        if defined _psver (
+            call :menuOpts
+            call :arrowMenu
+            set _er=!ERRORLEVEL!
+            cls & echo.
+            call :LC %c7% "Aguarde..."
+            goto :menuDispatch
+        )
         cls & echo.
-        call :L %c7% "                    "     %cC% "[1]" %c7% " Limpar TODOS"
+        call :LC %cC% "[1]" %c7% " Limpar TODOS"
         if %winbuild% GEQ 7600 (
-            call :L %c7% "                    " %cC% "[2]" %c7% " Limpar Office C2R  " %cA% "%dOCTR%"
-            call :L %c7% "                    " %cC% "[3]" %c7% " Limpar Office 2016 " %cA% "%dOM16%"
-            call :L %c7% "                    " %cC% "[4]" %c7% " Limpar Office 2013 " %cA% "%dOM15%"
+            call :LC %cC% "[2]" %c7% " Limpar Office C2R  " %cA% "%dOCTR%"
+            call :LC %cC% "[3]" %c7% " Limpar Office 2016 " %cA% "%dOM16%"
+            call :LC %cC% "[4]" %c7% " Limpar Office 2013 " %cA% "%dOM15%"
         )
-        call :L %c7% "                    "     %cC% "[5]" %c7% " Limpar Office 2010 " %cA% "%dOM14%"
-        call :L %c7% "                    "     %cC% "[6]" %c7% " Limpar Office 2007 " %cA% "%dOM12%"
-        call :L %c7% "                    "     %cC% "[7]" %c7% " Limpar Office 2003 " %cA% "%dOM11%"
+        call :LC %cC% "[5]" %c7% " Limpar Office 2010 " %cA% "%dOM14%"
+        call :LC %cC% "[6]" %c7% " Limpar Office 2007 " %cA% "%dOM12%"
+        call :LC %cC% "[7]" %c7% " Limpar Office 2003 " %cA% "%dOM11%"
         if %winbuild% GEQ 10240 ( 
-            call :L %c7% "                    " %cC% "[8]" %c7% " Limpar Office UWP  " %cA% "%dOUWP%"
+            call :LC %cC% "[8]" %c7% " Limpar Office UWP  " %cA% "%dOUWP%"
         )
         if %winbuild% GEQ 7600 (
-            call :L %c7% "                    " %cC% "[9]" %c7% " Voltar ao Menu Principal"
+            call :LC %cC% "[9]" %c7% " Voltar ao Menu Principal"
             echo.
-            echo                    Office 2016 e posteriores
+            call :LC %c7% "Office 2016 e posteriores"
             echo.
-            call :L %c7% "                    " %cC% "[L]" %c7% " Limpar Licenáas vNext " %cA% "%dONXT%"
-            call :L %c7% "                    " %cC% "[A]" %c7% " Apagar todas as Licenáas"
-            call :L %c7% "                    " %cC% "[R]" %c7% " Resetar Licenáas C2R"
-            call :L %c7% "                    " %cC% "[D]" %c7% " Desinstalar todas as Chaves"
-            call :L %c7% "                    " %cC% "[0]" %c7% " SAIR"    
+            call :LC %cC% "[L]" %c7% " Limpar Licenáas vNext " %cA% "%dONXT%"
+            call :LC %cC% "[A]" %c7% " Apagar todas as Licenáas"
+            call :LC %cC% "[R]" %c7% " Resetar Licenáas C2R"
+            call :LC %cC% "[D]" %c7% " Desinstalar todas as Chaves"
+            call :LC %cC% "[0]" %c7% " SAIR"
         )
         echo.
-        call :L %c7% "   [" %cA% "<" %c7% "] Instalaá∆o detectada."
+        call :LC %c7% "[" %cA% "<" %c7% "] Instalaá∆o detectada."
         echo.
 
         if %_wxp% equ 0 (
             choice /c 123456789LARD0 /n /m "> "
             set _er=!ERRORLEVEL!
             cls & echo.
-            echo    Aguarde...
+            call :LC %c7% "Aguarde..."
         ) else (
-            set /p _pt="Selecione uma opá∆o e pressione Enter, ou 0 para sair: "
+            call :center "Selecione uma opá∆o e pressione Enter, ou 0 para sair: "
+            set /p _pt="%_ctr%"
         )
 
         if defined _pt (
@@ -821,6 +888,7 @@ cls
             set _er=!_pt!
         )
 
+    :menuDispatch
         @REM Numeraá∆o alinhada a 'choice /c 123456789LARD0': L=10, A=11,
         @REM R=12, D=13, 0=14. Antes estava deslocada em 1, ent∆o cada letra
         @REM executava a aá∆o da opá∆o seguinte, [D] sa°a e [0] n∆o sa°a.
@@ -866,29 +934,30 @@ cls
         call :Hdr
         
         echo.
-        call :L %c7% "                    "     %c6% "[1]" %c7% " Iniciar a operaá∆o"
+        call :LC %c6% "[1]" %c7% " Iniciar a operaá∆o"
         if %winbuild% GEQ 7600 (
-            call :L %c7% "                    " %c6% "[2]" %c7% " Office C2R:  %aOCTR%"
-            call :L %c7% "                    " %c6% "[3]" %c7% " Office 2016: %aOM16%"
-            call :L %c7% "                    " %c6% "[4]" %c7% " Office 2013: %aOM15%"
+            call :LC %c6% "[2]" %c7% " Office C2R:  %aOCTR%"
+            call :LC %c6% "[3]" %c7% " Office 2016: %aOM16%"
+            call :LC %c6% "[4]" %c7% " Office 2013: %aOM15%"
         )
-        call :L %c7% "                    "     %c6% "[5]" %c7% " Office 2010: %aOM14%"
-        call :L %c7% "                    "     %c6% "[6]" %c7% " Office 2007: %aOM12%"
-        call :L %c7% "                    "     %c6% "[7]" %c7% " Office 2003: %aOM11%"
+        call :LC %c6% "[5]" %c7% " Office 2010: %aOM14%"
+        call :LC %c6% "[6]" %c7% " Office 2007: %aOM12%"
+        call :LC %c6% "[7]" %c7% " Office 2003: %aOM11%"
         if %winbuild% GEQ 10240 (
-            call :L %c7% "                    " %c6% "[8]" %c7% " Office UWP:  %aOUWP%"
+            call :LC %c6% "[8]" %c7% " Office UWP:  %aOUWP%"
         )
-        call :L %c7% "                    "     %c6% "[9]" %c7% " Voltar ao Menu Anterior"
-        call :L %c7% "                    "     %c6% "[0]" %c7% " SAIR"
+        call :LC %c6% "[9]" %c7% " Voltar ao Menu Anterior"
+        call :LC %c6% "[0]" %c7% " SAIR"
         echo.
-        echo  Aviso: Limpar todos pode demorar. 
+        call :LC %c7% "Aviso: Limpar todos pode demorar."
         echo.
         
         if %_wxp% equ 0 (
             choice /c 1234567890 /n /m "> "
             set _er=!ERRORLEVEL!
         ) else (
-            set /p _pt="Selecione uma opá∆o e pressione Enter, ou 0 para sair: "
+            call :center "Selecione uma opá∆o e pressione Enter, ou 0 para sair: "
+            set /p _pt="%_ctr%"
         )
 
         if defined _pt (
@@ -914,6 +983,47 @@ cls
         goto :mALL
 
 
+    :menuOpts
+        @REM Opcoes do menu de limpeza: call :addOpt "tecla" "texto" [codigo] [sufixo].
+        @REM O codigo e o ERRORLEVEL devolvido (mesma numeracao do antigo 'choice /c 123456789LARD0').
+        set "_mTitle="
+        set "_mFoot=[<] Instalaá∆o detectada."
+        set "_mOpts="
+
+        call :addOpt -
+        call :addOpt - "Desinstalar Office"
+        call :addOpt -
+        call :addOpt 1 "Limpar TODOS" 1
+        if %winbuild% GEQ 7600 (
+            call :addOpt 2 "Limpar Office C2R"  2 "%dOCTR%"
+            call :addOpt 3 "Limpar Office 2016" 3 "%dOM16%"
+            call :addOpt 4 "Limpar Office 2013" 4 "%dOM15%"
+        )
+        call :addOpt 5 "Limpar Office 2010" 5 "%dOM14%"
+        call :addOpt 6 "Limpar Office 2007" 6 "%dOM12%"
+        call :addOpt 7 "Limpar Office 2003" 7 "%dOM11%"
+        if %winbuild% GEQ 10240 call :addOpt 8 "Limpar Office UWP" 8 "%dOUWP%"
+        if %winbuild% GEQ 7600 (
+            call :addOpt 9 "Voltar ao Menu Principal" 9
+            call :addOpt -
+            call :addOpt - "Office 2016 e posteriores"
+            call :addOpt -
+            call :addOpt L "Limpar Licenáas vNext"       10 "%dONXT%"
+            call :addOpt A "Apagar todas as Licenáas"    11
+            call :addOpt R "Resetar Licenáas C2R"        12
+            call :addOpt D "Desinstalar todas as Chaves" 13
+        )
+        call :addOpt -
+        call :addOpt 0 "SAIR" 14
+        goto :eof
+
+
+    :addOpt
+        @REM %1=tecla ("-" = cabecalho/linha em branco) | %2=texto | %3=codigo | %4=sufixo
+        if defined _mOpts ( set "_mOpts=%_mOpts%;%~1|%~2|%~3|%~4" ) else set "_mOpts=%~1|%~2|%~3|%~4"
+        goto :eof
+
+
     :Hdr
         cls
         echo.
@@ -925,7 +1035,7 @@ cls
 
         cls
         echo.
-        echo Desinstalando chaves de produto...
+        call :LC %c7% "Desinstalando chaves de produto..."
         call :cKMS %_Nul3%
         
         if %winbuild% GEQ 7600 (
@@ -985,7 +1095,7 @@ cls
         call :Hdr
         
         if %_pwsh% equ 0 (
-            set "msg=ERRO: Problemas ao localizar o PowerShell."
+            set "msg=Problemas ao localizar o PowerShell."
             goto :theEnd
         )
 
@@ -998,7 +1108,7 @@ cls
         if exist "!_file!" (
             cls
             echo.
-            echo Executando OfficeClickToRun.exe...
+            call :LC %c7% "Executando OfficeClickToRun.exe..."
             
             %_Nul3% call :CloseC2R
             %_Nul3% start "" /WAIT "!_file!" platform=%_plat% productstoremove=AllProducts displaylevel=False
@@ -1007,7 +1117,7 @@ cls
         if exist "!_fil2!" if /i "%PROCESSOR_ARCHITECTURE%"=="arm64" (
             cls
             echo.
-            echo Executando OfficeClickToRun.exe...
+            call :LC %c7% "Executando OfficeClickToRun.exe..."
             
             %_Nul3% call :CloseC2R
             %_Nul3% start "" /WAIT "!_fil2!" platform=%_plat% productstoremove=AllProducts displaylevel=False
@@ -1015,7 +1125,7 @@ cls
         
         cls
         echo.
-        echo Limpando Office C2R...
+        call :LC %c7% "Limpando Office C2R..."
         
         for %%A in ( 16,19,21,24 ) do call :cKpp %%A
         if %_O15CTR% equ 1 call :cKpp 15
@@ -1029,7 +1139,7 @@ cls
         title Encerrando processos do Office
         
         cls & echo.
-        echo  Encerrando processos relacionados ao Office...
+        call :LC %c7% "Encerrando processos relacionados ao Office..."
 
         net stop OfficeSvc /y
         net stop ClickToRunSvc /y
@@ -1081,11 +1191,11 @@ cls
         ) do if not exist "!_work!\%%#" set "_need=1"
         
         if !_need! equ 0 goto :eof
-        if %_pwsh% equ 0 ( set "msg=ERRO: PowerShell Ç necess†rio para baixar a pasta bin." & goto :theEnd )
+        if %_pwsh% equ 0 ( set "msg=PowerShell Ç necess†rio para baixar a pasta bin." & goto :theEnd )
 
         cls & echo.
-        echo  Pasta 'bin' incompleta. Baixando ferramentas de remoá∆o do
-        echo  Office a partir do abbodi1406/BatUtil...
+        call :LC %c7% "Pasta 'bin' incompleta. Baixando ferramentas de remoá∆o do"
+        call :LC %c7% "Office a partir do abbodi1406/BatUtil..."
 
         if not exist "!_work!" md "!_work!"
         %_psc% "[Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor 3072; $d='!_work!'; $u='https://raw.githubusercontent.com/abbodi1406/BatUtil/master/OfficeScrubber/bin/'; $wc=New-Object Net.WebClient; foreach($f in 'CleanOffice.txt','OffScrub03.vbs','OffScrub07.vbs','OffScrub10.vbs','OffScrubC2R.vbs','OffScrub_O15msi.vbs','OffScrub_O16msi.vbs'){ try{$wc.DownloadFile($u+$f,(Join-Path $d $f))}catch{} }"
@@ -1095,10 +1205,10 @@ cls
             OffScrubC2R.vbs OffScrub_O16msi.vbs OffScrub_O15msi.vbs OffScrub10.vbs OffScrub07.vbs OffScrub03.vbs CleanOffice.txt
         ) do if not exist "!_work!\%%#" set "_need=1"
         
-        if !_need! equ 1 ( set "msg=ERRO: Falha ao baixar a pasta bin. Verifique a conex∆o com a internet." & goto :theEnd )
+        if !_need! equ 1 ( set "msg=Falha ao baixar a pasta bin. Verifique a conex∆o com a internet." & goto :theEnd )
         
         cls & echo.
-        echo  Ferramentas baixadas com sucesso.
+        call :LC %c7% "Ferramentas baixadas com sucesso."
         timeout /t 1 > NUL
         goto :eof
 
@@ -1106,7 +1216,7 @@ cls
     :rOUWP
         cls
         echo.
-        echo  Removendo aplicativos UWP Office...
+        call :LC %c7% "Removendo aplicativos UWP Office..."
         %_Nul3% %_psc% "Get-AppXPackage -Name '*Microsoft.Office.Desktop*' | Foreach {Remove-AppxPackage $_.PackageFullName}"
         %_Nul3% %_psc% "Get-AppXProvisionedPackage -Online | Where DisplayName -Like '*Microsoft.Office.Desktop*' | Remove-AppXProvisionedPackage -Online"
         @title Office Scrubber %uivr%
@@ -1116,7 +1226,7 @@ cls
     :rOM16
         cls
         echo.
-        echo  Limpando Office 2016 MSI...
+        call :LC %c7% "Limpando Office 2016 MSI..."
         call :cKpp 16
         %_cscript% OffScrub_O16msi.vbs %_para%
         %_Nul3% call :officeREG 16
@@ -1126,7 +1236,7 @@ cls
     :rOM15
         cls
         echo.
-        echo  Limpando Office 2013 MSI...
+        call :LC %c7% "Limpando Office 2013 MSI..."
         call :cKpp 15
         %_cscript% OffScrub_O15msi.vbs %_para%
         %_Nul3% call :officeREG 15
@@ -1136,7 +1246,7 @@ cls
     :rOM14
         cls
         echo.
-        echo  Limpando Office 2010...
+        call :LC %c7% "Limpando Office 2010..."
         call :cK14
         %_cscript% OffScrub10.vbs %_para%
         %_Nul3% call :officeREG 14
@@ -1146,7 +1256,7 @@ cls
     :rOM12
         cls
         echo.
-        echo  Limpando Office 2007...
+        call :LC %c7% "Limpando Office 2007..."
         %_cscript% OffScrub07.vbs %_para%
         %_Nul3% call :officeREG 12
         goto :eof
@@ -1155,7 +1265,7 @@ cls
     :rOM11
         cls
         echo.
-        echo  Limpando Office 2003...
+        call :LC %c7% "Limpando Office 2003..."
         %_cscript% OffScrub03.vbs %_para%
         %_Nul3% call :officeREG 11
         goto :eof
@@ -1164,7 +1274,7 @@ cls
         :cSPP
             cls
             echo.
-            echo  Removendo Licenáas do Office...
+            call :LC %c7% "Removendo Licenáas do Office..."
             call :oppcln
             call :slmgr
             goto :eof
@@ -1179,7 +1289,7 @@ cls
         if exist "%SysPath%\spp\store_test\2.0\tokens.dat" (
             cls
             echo.
-            echo Atualizando Licenáas do Windows Insider Preview...
+            call :LC %c7% "Atualizando Licenáas do Windows Insider Preview..."
             %_cscript% //B %SysPath%\slmgr.vbs /rilc %_Nul3%
             if !ERRORLEVEL! NEQ 0 %_cscript% //B %SysPath%\slmgr.vbs /rilc %_Nul3%
         )
@@ -1370,7 +1480,7 @@ cls
 
         cls
         echo.
-        echo  Limpando Licenáas vNext...
+        call :LC %c7% "Limpando Licenáas vNext..."
         %_Nul3% call :vNextDir
         %_Nul3% call :vNextREG
         set "msg=Finalizado."
@@ -1380,9 +1490,8 @@ cls
     :KeysU
         call :Hdr
 
-        cls
-        echo.
-        echo  Desinstalando Chaves de Produto...
+        call :showInfo "Desinstalando Chaves de Produto..." %c2%
+        timeout /t 1 > NUL
         for %%A in (15,16,19,21,24) do call :cKpp %%A
         set "msg=Finalizado."
         goto :cleanUp
@@ -1397,11 +1506,11 @@ cls
 
     :LcnsT
         call :Hdr
-        echo.
-        echo Resetando Licenáas do Office C2R...
+        call :showWarn "Resetando Licenáas do Office C2R..."
+        timeout /t 1 > NUL
         
         if %_O16CTR% equ 0 (
-            set "msg=ERRO: Office ClickToRun n∆o detectado."
+            call :showError "Office ClickToRun n∆o detectado." & timeout /t 3 >nul
             goto :cleanUp
         )
         
@@ -1423,7 +1532,7 @@ cls
         for /f "skip=2 tokens=2*" %%a in ( '"reg.exe query %_PRIDs% /v ActiveConfiguration" %_Nul6%' ) do set "_PRIDs=%_PRIDs%\%%b"
         
         if not exist "%_Integrator%" (
-            set "msg=ERRO: N∆o foi poss°vel detectar o integrator.exe"
+            call :showError "N∆o foi poss°vel detectar o integrator.exe" & timeout /t 3 >nul
             goto :verifyExistingInstallation
         )
 
@@ -1432,15 +1541,17 @@ cls
         )
 
         if not defined _SKUs (
-            set "msg=ERRO: N∆o foi poss°vel detectar produtos Office instalados originalmente."
+            call :showError "N∆o foi poss°vel detectar produtos Office instalados originalmente." & timeout /t 3 >nul
             goto :verifyExistingInstallation
         )
 
         call :cSPP
-        
+        call :Hdr
+        call :showWarn "Instalando Licenáas do Office C2R..."
+        timeout /t 1 > NUL        
         cls
         echo.
-        echo Instalando Licenáas do Office C2R...
+        call :LC %c7% "Instalando Licenáas do Office C2R..."
         
         for %%a in ( %_SKUs% ) do (
             "!_Integrator!" /R /License PRIDName=%%a.16 PackageGUID="%_GUID%" PackageRoot="!_InstallRoot!" %_Nul1%
@@ -1452,25 +1563,34 @@ cls
 
     :E_Admin
         cls
-        echo %_err%
-        echo  Este script precisa ser iniciado como administrador.
-        echo  Para isso, clique com o bot∆o direito neste script e selecione 'Executar como administrador'
+        call :center "%_err%"
+        echo %_ctr%
+        call :center "Este script precisa ser iniciado como administrador."
+        echo %_ctr%
+        call :center "Para isso, clique com o bot∆o direito neste script e selecione 'Executar como administrador'"
+        echo %_ctr%
         goto :cleanUp
 
 
     :E_VBS
         cls
-        echo %_err%
-        echo  Motor VBScript inexistente.
-        echo  Ele Ç necess†rio para que este script funcione.
+        call :center "%_err%"
+        echo %_ctr%
+        call :center "Motor VBScript inexistente."
+        echo %_ctr%
+        call :center "Ele Ç necess†rio para que este script funcione."
+        echo %_ctr%
         goto :cleanUp
 
 
     :E_WSH
         cls
-        echo %_err%
-        echo O Windows Script Host est† desabilitado.
-        echo Ele Ç necess†rio para que este script funcione.
+        call :center "%_err%"
+        echo %_ctr%
+        call :center "O Windows Script Host est† desabilitado."
+        echo %_ctr%
+        call :center "Ele Ç necess†rio para que este script funcione."
+        echo %_ctr%
         goto :cleanUp
 
 
@@ -1526,29 +1646,22 @@ cls
 
 :theEnd
     mode con: cols=70 lines=7
-    echo.
-    echo  %msg%
-    echo.
+    call :showError "%msg%"
     timeout /t 5 > NUL
     EXIT
 
 
 :cleanUp
     mode con: cols=70 lines=7
-    echo.
-    if defined msg ( 
-        echo  %msg% 
-        echo. 
-    )
-    echo    Realizando limpeza final... & timeout /t 1 >nul
+    if defined msg call :showInfo "%msg%" %cA%
 
     %_Nul3% call :CloseC2R 2>nul
     del /f /q "setup.exe" 2>nul
     del /f /q "Configuration.xml" 2>nul
+    del /f /q "Configuration.partial" 2>nul
 
-    cls
-    echo.
-    echo    Removendo arquivos temporarios... & timeout /t 1 >nul
+    call :showWarn "Excluindo arquivos tempor†rios."
+    timeout /t 1 > NUL
     
     del /s /f /q "%TEMP%\*" 2>nul
     del /s /f /q "C:\Windows\Temp\*" 2>nul
@@ -1561,29 +1674,170 @@ cls
     cls
     goto :endScript
 
-    
+
 :L
+    @REM Pares cor/texto. Percorre com SHIFT (um 'for' sobre %* descartaria textos com ? ou *).
     setlocal EnableDelayedExpansion
     set "_LINE="
-    set "i=0"
 
-    for %%a in (%*) do (
-        set /A i+=1
-        set /A _pair=!i! %% 2
-        
-        if !_pair! equ 1 (
-            set "_LINE=!_LINE!!ESC![%%~a"
-        ) else (
-            set "_LINE=!_LINE!%%~a"
-        )
-    )
+    :L_next
+    if "%~1"=="" goto :L_print
+    set "_LINE=!_LINE!!ESC![%~1%~2"
+    shift & shift
+    goto :L_next
 
+    :L_print
     echo !_LINE!!ESC![0m
     endlocal
     exit /b
 
 
-:endScript
+:arrowMenu
+    @REM Menu navegavel por setas (Cima/Baixo + Enter) ou pela letra da opcao.
+    @REM Entrada: _mOpts ("Tecla|Texto|Codigo|Sufixo;..."; Codigo e Sufixo opcionais; Tecla "-" = cabecalho/linha em branco),
+    @REM _mTitle, _mTitleColor (codigo ANSI) e _mFoot opcionais. Saida: ERRORLEVEL = Codigo da opcao (ou seu indice 1..n).
+    @REM Sem PowerShell 3+, cai no choice (teclas de letra apenas).
+    if defined _psver goto :arrowMenuPS
+
+    setlocal EnableDelayedExpansion
+    set "_keys="
+    cls & echo.
+    call :LC %cA% "!_mTitle!"
     echo.
-    echo    Limpeza finalizada. Fechando janela. & timeout /t 2 > NUL
-    EXIT
+    for %%o in ("%_mOpts:;=" "%") do for /f "tokens=1,2 delims=|" %%k in (%%o) do (
+        call :LC %cC% "[%%k]" %c7% " %%l"
+        set "_keys=!_keys!%%k"
+    )
+    choice /C !_keys! /N
+    endlocal & exit /b %errorlevel%
+
+
+    :arrowMenuPS
+        @REM Script PowerShell montado em partes (uma instrucao por 'set') e executado de uma vez.
+        @REM Le as opcoes de _mOpts (Tecla|Texto|Codigo|Sufixo;...)
+        set "_ps=$o=@($env:_mOpts.Split(';')|ForEach-Object{$p=$_.Split('|');[pscustomobject]@{K=$p[0];T=$p[1];C=$p[2];S=$p[3]}});"
+        @REM Largura da janela, indices selecionaveis (sem cabecalhos '-') e selecao atual
+        set "_ps=%_ps%$w=[Console]::WindowWidth;$sel=@(0..($o.Count-1)|Where-Object{$o[$_].K -ne '-'});$s=0;"
+        @REM Recuo comum da lista (bloco centralizado) e funcao P = recuo para centralizar um texto
+        set "_ps=%_ps%$mx=($o|ForEach-Object{('['+$_.K+'] '+$_.T+' '+$_.S).Length}|Measure-Object -Maximum).Maximum;"
+        set "_ps=%_ps%function P($n){' '*[Math]::Max(0,[int](($w-$n)/2))};$bp=P $mx;"
+        @REM Ln = linha centralizada e preenchida ate a borda (apaga restos do redesenho)
+        set "_ps=%_ps%function Ln($t,$c){$pp=P $t.Length;Write-Host ($pp+$t+(' '*[Math]::Max(0,$w-$pp.Length-$t.Length-1))) -ForegroundColor $c};"
+        @REM Pick = encerra devolvendo o codigo da opcao $i (ou o indice+1, se nao houver codigo)
+        set "_ps=%_ps%function Pick($i){$x=$o[$i];[Console]::CursorVisible=$true;if($x.C){exit [int]$x.C}else{exit ($i+1)}};"
+        @REM Altura necessaria (linhas da lista + titulo + rodape + folga): se a janela for menor, a tela rola
+        @REM e o redesenho por posicao do cursor deixa residuos; entao a janela e ampliada.
+        set "_ps=%_ps%$need=$o.Count+$(if($env:_mTitle){2}else{0})+$(if($env:_mFoot){2}else{0})+3;"
+        set "_ps=%_ps%if([Console]::WindowHeight -lt $need){try{[Console]::SetBufferSize($w,$need);[Console]::SetWindowSize($w,$need)}catch{}};"
+        @REM Tela inicial: titulo opcional, centralizado; cor ANSI em _mTitleColor (padrao laranja 38;5;208)
+        set "_ps=%_ps%Clear-Host;Write-Host;if($env:_mTitle){$e=[char]27;$tc=$env:_mTitleColor;if(-not $tc){$tc='38;5;208'};$pp=P $env:_mTitle.Length;Write-Host ($pp+$e+'['+$tc+'m'+$env:_mTitle+$e+'[0m');Write-Host};"
+        set "_ps=%_ps%$top=[Console]::CursorTop;[Console]::CursorVisible=$false;"
+        @REM Laco principal: redesenha a lista a cada tecla
+        set "_ps=%_ps%while($true){[Console]::SetCursorPosition(0,$top);"
+        @REM   cabecalhos e linhas em branco
+        set "_ps=%_ps%for($i=0;$i -lt $o.Count;$i++){$x=$o[$i];if($x.K -eq '-'){Ln $x.T 'Gray';continue};"
+        @REM   opcao: selecionada (fundo claro) ou normal ([tecla] vermelha) + sufixo verde
+        set "_ps=%_ps%$t='['+$x.K+'] '+$x.T;Write-Host $bp -NoNewline;"
+        set "_ps=%_ps%if($i -eq $sel[$s]){Write-Host $t -ForegroundColor Black -BackgroundColor White -NoNewline}"
+        set "_ps=%_ps%else{Write-Host ('['+$x.K+']') -ForegroundColor Red -NoNewline;Write-Host (' '+$x.T) -NoNewline};"
+        set "_ps=%_ps%$u=$t.Length;if($x.S){Write-Host (' '+$x.S) -ForegroundColor Green -NoNewline;$u+=1+$x.S.Length};"
+        set "_ps=%_ps%Write-Host (' '*[Math]::Max(0,$w-$bp.Length-$u-1))};"
+        @REM   rodape opcional
+        set "_ps=%_ps%if($env:_mFoot){Ln '' 'Gray';$f=$env:_mFoot;$pp=P $f.Length;$i=$f.IndexOf('<');"
+        set "_ps=%_ps%Write-Host ($pp+$f.Substring(0,$i)) -NoNewline;Write-Host '<' -ForegroundColor Green -NoNewline;"
+        set "_ps=%_ps%Write-Host ($f.Substring($i+1)+(' '*[Math]::Max(0,$w-$pp.Length-$f.Length-1)))};"
+        @REM   teclas: setas movem a selecao, Enter confirma, letra/numero escolhe direto
+        set "_ps=%_ps%$k=[Console]::ReadKey($true);"
+        set "_ps=%_ps%switch($k.Key){'UpArrow'{$s=($s+$sel.Count-1)%%$sel.Count}'DownArrow'{$s=($s+1)%%$sel.Count}'Enter'{Pick $sel[$s]}"
+        set "_ps=%_ps%default{foreach($i in $sel){if($o[$i].K -eq $k.KeyChar.ToString().ToUpper()){Pick $i}}}}}"
+        powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "%_ps%"
+        set "_rc=%errorlevel%"
+        @REM 'set "var="' zera o ERRORLEVEL; por isso o codigo e guardado antes de limpar.
+        set "_mTitle=" & set "_mTitleColor=" & set "_mFoot="
+        exit /b %_rc%
+
+
+:showInfo
+    @REM %1 = texto | %2 = cor opcional (padrao: branco)
+    set "_c=%~2"
+    if not defined _c set "_c=40;37m"
+    call :center "%~1"
+    cls & echo.
+    echo.
+    echo.
+    call :L "%_c%" "%_ctr%"
+    echo.
+    echo.
+    goto :eof
+
+
+:showWarn
+    @REM %1 = texto
+    call :center "%~1"
+    cls & echo.
+    echo.
+    echo.
+    call :L "40;93m" "%_ctr%"
+    echo.
+    echo.
+    goto :eof
+
+
+:showError
+    @REM %1 = texto
+    call :center "ERRO" fill
+    set "_ban=%_ctr%"
+    call :center "%~1"
+    cls & echo.
+    call :L "44;31m" "%_ban%"
+    echo.
+    echo %_ctr%
+    echo.
+    goto :eof
+
+
+:LC
+    @REM Igual a :L (pares cor/texto), mas centralizada na largura da janela (_cols).
+    setlocal EnableDelayedExpansion
+    set "_cols=70"
+    set "_tot=0"
+
+    :LC_next
+    if "%~1"=="" goto :LC_pad
+    set "_s=%~2#"
+    set "_n=0"
+    for %%P in (64 32 16 8 4 2 1) do if not "!_s:~%%P,1!"=="" set /a "_n+=%%P" & set "_s=!_s:~%%P!"
+    set /a "_tot+=_n"
+    shift & shift
+    goto :LC_next
+
+    :LC_pad
+    set /a "_l=(_cols-_tot)/2"
+    set "_sp="
+    for /l %%i in (1,1,!_l!) do set "_sp=!_sp! "
+    call :L "40;37m" "!_sp!" %*
+    goto :eof
+
+
+:center
+    @REM %1 = texto | %2 = "fill" completa a direita com espacos (faixa colorida)
+    @REM Devolve em _ctr o texto centralizado na largura da janela (_cols).
+    setlocal EnableDelayedExpansion
+    set "_cols=70"
+    set "_t=%~1"
+    set "_s=!_t!#"
+    set "_n=0"
+    for %%P in (64 32 16 8 4 2 1) do if not "!_s:~%%P,1!"=="" set /a "_n+=%%P" & set "_s=!_s:~%%P!"
+    set /a "_l=(_cols-_n)/2, _r=_cols-_n-_l"
+    set "_sp="
+    for /l %%i in (1,1,!_l!) do set "_sp=!_sp! "
+    set "_rp="
+    if "%~2"=="fill" for /l %%i in (1,1,!_r!) do set "_rp=!_rp! "
+    endlocal & set "_ctr=%_sp%%_t%%_rp%"
+    goto :eof
+
+
+:endScript
+    call :showInfo "Limpeza finalizada. Fechando terminal." %c2%
+    timeout /t 1 > NUL
+    exit
