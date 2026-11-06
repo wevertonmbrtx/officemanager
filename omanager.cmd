@@ -252,6 +252,13 @@ cls
         if /i "%%i"=="BuildLab" if not "%%~k"=="" set "winbuild=%%~k"
     )
 
+    @REM Cores ANSI so existem no console a partir do Windows 10 1511 (build 10586); antes disso, sai sem cor.
+    set _vt=1
+    if %winbuild% LSS 10586 set _vt=0
+    @REM Console antigo em sistema nao-850 (ex.: Windows 7 em ingles): a fonte raster ignora o chcp 850 e os "a com til" viram simbolos.
+    set _ascii=0
+    if %_vt% equ 0 for /f "tokens=3" %%c in ('reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Nls\CodePage" /v OEMCP 2^>nul ^| find "OEMCP"') do if not "%%c"=="850" set _ascii=1
+
     set _cwmi=0
     for %%# in ( wmic.exe ) do @if not "%%~$PATH:#"=="" (
         wmic path Win32_ComputerSystem get CreationClassName /value 2>nul | find /i "ComputerSystem" 1>nul && set _cwmi=1
@@ -377,6 +384,10 @@ cls
     call :locateOffice
 
     if exist "%WRD%" ( if exist "%EXC%" ( if exist "%PPT%" GOTO :changeInstallation ) )
+    @REM Instalacao interrompida deixa o C2R no registro sem o Word. O setup a trata como Office instalado e bloqueia a troca
+    @REM de arquitetura (SxS_64_over_32), entao oferece o menu que permite remover esses restos.
+    reg.exe query "HKLM\SOFTWARE\Microsoft\Office\ClickToRun" >nul 2>&1 && GOTO :changeInstallation
+    reg.exe query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Office\ClickToRun" >nul 2>&1 && GOTO :changeInstallation
 
     GOTO :setUpConfiguration
 
@@ -396,6 +407,8 @@ cls
 
 
 :setUpConfiguration
+    @REM Abaixo do Windows 8 o setup.exe atual nao abre (falta CreateFile2) e a Microsoft bloqueia novas instalacoes.
+    if %winbuild% LSS 9200 goto :osUnsupported
     cd /d "%~dp0bin"
     title Configurando instala‡Æo do Office
 
@@ -576,13 +589,6 @@ cls
 
 :setUpInstaller
     title Verificando arquivo existente...
-    @REM Remove o cliente C2R antigo POR INTEIRO. Apagar so os arquivos que nao estao em uso (del /S /Q com o servico
-    @REM rodando) deixa o cliente incompleto e o setup falha com o erro 0-2031 (0xC06D007E, modulo nao encontrado).
-    @REM Por isso o servico e os processos sao encerrados antes e a pasta e removida com rd /s /q.
-    net stop ClickToRunSvc /y >nul 2>&1
-    taskkill /f /im OfficeClickToRun.exe >nul 2>&1
-    taskkill /f /im OfficeC2RClient.exe >nul 2>&1
-    if exist "%PROGRAMFILES%\Common Files\microsoft shared\ClickToRun" rd /s /q "%PROGRAMFILES%\Common Files\microsoft shared\ClickToRun" 2>nul
 
     call :showInfo "Verificando arquivo existente..."
     timeout /t 1 > NUL
@@ -633,6 +639,42 @@ cls
     ping -n 1 -w 4000 officecdn.microsoft.com >nul 2>&1 && set "_net=1"
     goto :eof
     
+:purgeC2R
+    @REM Roda so depois do download: se a internet falhar, um Office ja instalado nao fica sem o cliente.
+    @REM Remove o cliente C2R antigo POR INTEIRO. Apagar so os arquivos que nao estao em uso (del /S /Q com o servico
+    @REM rodando) deixa o cliente incompleto e o setup falha com o erro 0-2031 (0xC06D007E, modulo nao encontrado).
+    @REM Por isso o servico e os processos sao encerrados antes e as pastas sao removidas com rd /s /q.
+    title Removendo ClickToRun antigo
+    call :showInfo "Removendo ClickToRun e instaladores antigos do Office..."
+    net stop OfficeSvc /y >nul 2>&1
+    net stop ClickToRunSvc /y >nul 2>&1
+    for %%# in (OfficeClickToRun OfficeC2RClient OfficeSetup officeondemand appvshnotify integrator) do taskkill /f /im %%#.exe >nul 2>&1
+    for %%d in (
+        "%ProgramFiles%\Common Files\microsoft shared\ClickToRun"
+        "%ProgramW6432%\Common Files\microsoft shared\ClickToRun"
+        "%ProgramFiles(x86)%\Common Files\microsoft shared\ClickToRun"
+        "%ProgramFiles%\Microsoft Office\Updates"
+        "%ProgramW6432%\Microsoft Office\Updates"
+        "%ProgramFiles(x86)%\Microsoft Office\Updates"
+        "%ProgramFiles%\Microsoft Office 15\ClientX64"
+        "%ProgramFiles%\Microsoft Office 15\ClientX86"
+        "%ProgramW6432%\Microsoft Office 15\ClientX64"
+        "%ProgramW6432%\Microsoft Office 15\ClientX86"
+        "%ProgramFiles(x86)%\Microsoft Office 15\ClientX86"
+        "%ProgramData%\Microsoft\ClickToRun"
+    ) do if exist "%%~d" rd /s /q "%%~d" 2>nul
+    if %_pwsh% equ 0 goto :eof
+    @REM Procura os instaladores pelos metadados, nao pelo nome: eles podem estar renomeados, e outros programas tambem tem setup.exe.
+    @REM O setup.exe recem-baixado (pasta bin deste script) e preservado.
+    set "_pgKeep=%~dp0bin"
+    set "_pgRoots=%SystemDrive%\Users;%SystemRoot%\Temp;%ProgramData%\Microsoft"
+    set "_pg=$env:_pgRoots.Split(';')|Where-Object{$_ -and (Test-Path -LiteralPath $_)}|ForEach-Object{Get-ChildItem -LiteralPath $_ -Recurse -Force -Filter *.exe -ErrorAction SilentlyContinue}|"
+    set "_pg=%_pg%Where-Object{-not $_.PSIsContainer -and $_.Length -gt 1000000 -and $_.Length -lt 200000000 -and $_.DirectoryName -ne $env:_pgKeep}|"
+    set "_pg=%_pg%ForEach-Object{$v=$_.VersionInfo;if($v.CompanyName -eq 'Microsoft Corporation' -and $v.ProductName -eq 'Microsoft Office' -and ($v.OriginalFilename -eq 'Bootstrapper.exe' -or $_.Name -like 'OfficeSetup*' -or $_.Name -eq 'OfficeClickToRun.exe' -or $_.Name -eq 'OfficeC2RClient.exe')){Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue}}"
+    powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "%_pg%" >nul 2>&1
+    goto :eof
+
+
 :downloadFail
     CLS
     call :showError "Falha ao baixar o setup.exe. Verifique sua conexÆo com a internet."
@@ -644,6 +686,7 @@ cls
 :Install
     title Instalando Office
     if not exist "%~dp0bin\setup.exe" goto :installError
+    call :purgeC2R
     call :showInfo "Iniciando a instala‡Æo do Office..."
     timeout /t 2 > NUL
     GOTO :aWait 
@@ -1326,6 +1369,8 @@ cls
             for /f "skip=2 tokens=2*" %%a in ('"reg.exe query HKLM\SOFTWARE\WOW6432Node\Microsoft\Office\ClickToRun\Configuration /v Platform" %_Nul6%') do set "_plat=%%b"
         )
         if exist "!_file!" set _O16CTR=1
+        reg.exe query HKLM\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL %_Nul3% && set _O16CTR=1
+        reg.exe query HKLM\SOFTWARE\WOW6432Node\Microsoft\Office\ClickToRun\Scenario\INSTALL %_Nul3% && set _O16CTR=1
         if exist "!_fil2!" if /i "%PROCESSOR_ARCHITECTURE%"=="arm64" set _O16CTR=1
         if %_O16CTR% equ 1 if not defined _plat (
             if exist "%ProgramFiles(x86)%\Microsoft Office\Office16\OSPP.VBS" ( set "_plat=x86" ) else (set "_plat=%xBit%")
@@ -1651,6 +1696,16 @@ cls
     EXIT
 
 
+:osUnsupported
+    mode con: cols=70 lines=9
+    title Windows sem suporte
+    call :showError "O Microsoft 365 Apps nÇo pode ser instalado neste Windows."
+    call :LC %c7% "Atualize para o Windows 10 ou 11."
+    call :LC %c7% "Pressione qualquer tecla para sair."
+    pause > NUL
+    EXIT
+
+
 :cleanUp
     mode con: cols=70 lines=7
     if defined msg call :showInfo "%msg%" %cA%
@@ -1682,12 +1737,13 @@ cls
 
     :L_next
     if "%~1"=="" goto :L_print
-    set "_LINE=!_LINE!!ESC![%~1%~2"
+    if "%_vt%"=="0" (set "_LINE=!_LINE!%~2") else set "_LINE=!_LINE!!ESC![%~1%~2"
     shift & shift
     goto :L_next
 
     :L_print
-    echo !_LINE!!ESC![0m
+    if "%_ascii%"=="1" if defined _LINE set "_LINE=!_LINE:Ç=a!"
+    if "%_vt%"=="0" (echo(!_LINE!) else echo !_LINE!!ESC![0m
     endlocal
     exit /b
 
@@ -1713,6 +1769,9 @@ cls
 
 
     :arrowMenuPS
+        if "%_ascii%"=="1" if defined _mTitle set "_mTitle=!_mTitle:Ç=a!"
+        if "%_ascii%"=="1" if defined _mOpts set "_mOpts=!_mOpts:Ç=a!"
+        if "%_ascii%"=="1" if defined _mFoot set "_mFoot=!_mFoot:Ç=a!"
         @REM Script PowerShell montado em partes (uma instrucao por 'set') e executado de uma vez.
         @REM Le as opcoes de _mOpts (Tecla|Texto|Codigo|Sufixo;...)
         set "_ps=$o=@($env:_mOpts.Split(';')|ForEach-Object{$p=$_.Split('|');[pscustomobject]@{K=$p[0];T=$p[1];C=$p[2];S=$p[3]}});"
@@ -1730,7 +1789,7 @@ cls
         set "_ps=%_ps%$need=$o.Count+$(if($env:_mTitle){2}else{0})+$(if($env:_mFoot){2}else{0})+3;"
         set "_ps=%_ps%if([Console]::WindowHeight -lt $need){try{[Console]::SetBufferSize($w,$need);[Console]::SetWindowSize($w,$need)}catch{}};"
         @REM Tela inicial: titulo opcional, centralizado; cor ANSI em _mTitleColor (padrao laranja 38;5;208)
-        set "_ps=%_ps%Clear-Host;Write-Host;if($env:_mTitle){$e=[char]27;$tc=$env:_mTitleColor;if(-not $tc){$tc='38;5;208'};$pp=P $env:_mTitle.Length;Write-Host ($pp+$e+'['+$tc+'m'+$env:_mTitle+$e+'[0m');Write-Host};"
+        set "_ps=%_ps%Clear-Host;Write-Host;if($env:_mTitle){$e=[char]27;$tc=$env:_mTitleColor;if(-not $tc){$tc='38;5;208'};$pp=P $env:_mTitle.Length;if($env:_vt -eq '0'){Write-Host ($pp+$env:_mTitle) -ForegroundColor $(if($tc -eq '93'){'Yellow'}else{'DarkYellow'})}else{Write-Host ($pp+$e+'['+$tc+'m'+$env:_mTitle+$e+'[0m')};Write-Host};"
         set "_ps=%_ps%$top=[Console]::CursorTop;[Console]::CursorVisible=$false;"
         @REM Laco principal: redesenha a lista a cada tecla
         set "_ps=%_ps%while($true){[Console]::SetCursorPosition(0,$top);"
@@ -1825,6 +1884,7 @@ cls
     setlocal EnableDelayedExpansion
     set "_cols=70"
     set "_t=%~1"
+    if "%_ascii%"=="1" if defined _t set "_t=!_t:Ç=a!"
     set "_s=!_t!#"
     set "_n=0"
     for %%P in (64 32 16 8 4 2 1) do if not "!_s:~%%P,1!"=="" set /a "_n+=%%P" & set "_s=!_s:~%%P!"
